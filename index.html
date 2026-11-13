@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The Vault: a detective game from The Crime Vault. Work real South African and international murder cases from the evidence, test the claims, and make your call.">
+<meta property="og:title" content="The Vault · The Crime Vault">
+<meta property="og:description" content="Can you solve real cases from the evidence? One training case and four real cases, single and serial killers.">
+<meta name="theme-color" content="#0e151d">
+<title>The Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@600;800;900&family=Courier+Prime:wght@400;700&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: case dockets on a desk in a dark evidence room. Manila paper on ink-blue, one red-orange evidence-tag accent, red string on cork. Single theme by choice. */
+:root{
+  --ink:#0e151d;
+  --panel:#16212c;
+  --line:#26333f;
+  --chalk:#d3dbe2;
+  --muted:#7f8d9a;
+  --paper:#e8dbbd;
+  --paper-2:#d9c9a4;
+  --paper-ink:#2b2318;
+  --tag:#e2552f;
+  --tag-dim:#7a3523;
+  --ok:#6fb38a;
+  --cork:#7a5634;
+  --string:#c92a2a;
+  --display:"Big Shoulders Stencil Display", "Impact", "Arial Narrow", sans-serif;
+  --body:"IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --mono:"Courier Prime", "Courier New", monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--ink);color:var(--chalk);font-family:var(--body);font-size:16px;line-height:1.5;
+  background-image:radial-gradient(ellipse at 50% -10%, #1d2b38 0%, var(--ink) 60%);background-attachment:fixed}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--tag);outline-offset:2px}
+h1,h2,h3{text-wrap:balance;margin:0}
+
+/* Header */
+.top{padding:22px 20px 0;max-width:1200px;margin:0 auto}
+.docket-line{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.02em}
+.docket-line b{color:var(--chalk);font-weight:700}
+.title{font-family:var(--display);font-weight:900;font-size:clamp(44px,9vw,96px);line-height:.88;letter-spacing:.01em;
+  text-transform:uppercase;margin:10px 0 6px;color:var(--paper)}
+.title span{color:var(--tag)}
+.flicker{animation:flicker 2.6s ease-out .3s 1 both}
+@keyframes flicker{
+  0%{opacity:1}6%{opacity:.15}9%{opacity:1}14%{opacity:.05}30%{opacity:.05}
+  33%{opacity:.8}36%{opacity:.2}44%{opacity:1}100%{opacity:1}}
+.sub{color:var(--muted);max-width:62ch;margin:0 0 14px}
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.chip{font-family:var(--mono);font-size:13px;padding:4px 10px;border:1px solid var(--line);border-radius:3px;background:var(--panel);font-variant-numeric:tabular-nums}
+.chip b{color:var(--paper)}
+.chip.hot{border-color:var(--tag-dim);color:#f3b49f}
+
+/* Tabs as docket dividers */
+nav.tabs{display:flex;gap:4px;overflow-x:auto;max-width:1200px;margin:0 auto;padding:0 20px;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;background:var(--paper-2);color:var(--paper-ink);border:0;border-radius:6px 6px 0 0;
+  padding:9px 16px 8px;font-family:var(--display);font-weight:800;font-size:18px;letter-spacing:.06em;text-transform:uppercase;opacity:.55;position:relative}
+.tab[aria-selected="true"]{opacity:1;background:var(--paper)}
+.tab .dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--tag)}
+
+main{max-width:1200px;margin:0 auto;padding:0 20px 40px}
+.sheet{background:var(--paper);color:var(--paper-ink);border-radius:0 6px 6px 6px;padding:24px;min-height:420px;
+  box-shadow:0 20px 50px -20px #000;position:relative}
+.sheet h2{font-family:var(--display);font-weight:800;font-size:30px;text-transform:uppercase;letter-spacing:.03em;line-height:1}
+.sheet .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#7a6a4f}
+.typed{font-family:var(--mono);font-size:15px;line-height:1.6}
+.cols{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:28px}
+@media (max-width:820px){.cols{grid-template-columns:1fr}}
+.rule{border:0;border-top:1px dashed #a8946c;margin:18px 0}
+.hint{font-size:14px;color:#6b5c43}
+
+/* Buttons */
+.btn{border:2px solid var(--paper-ink);background:transparent;color:var(--paper-ink);padding:7px 14px;border-radius:3px;
+  font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.06em;text-transform:uppercase}
+.btn:hover{background:var(--paper-ink);color:var(--paper)}
+.btn.red{border-color:var(--tag);background:var(--tag);color:#fff}
+.btn.red:hover{background:#c43f1c;border-color:#c43f1c}
+.btn:disabled{opacity:.4;cursor:not-allowed;background:transparent;color:var(--paper-ink)}
+.btn.small{font-size:14px;padding:4px 10px}
+
+/* Evidence grid */
+.ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:16px}
+.ev{position:relative;text-align:left;background:#f4ead2;border:1px solid #c7b48a;border-radius:4px;padding:14px 14px 12px;
+  color:var(--paper-ink);min-height:128px;display:flex;flex-direction:column;gap:6px;transition:transform .15s}
+.ev:hover{transform:translateY(-2px) rotate(-.4deg)}
+.ev .no{font-family:var(--display);font-weight:900;font-size:26px;line-height:1;color:var(--tag)}
+.ev .t{font-weight:600;font-size:16px;line-height:1.25}
+.ev .s{font-size:13.5px;color:#6b5c43;line-height:1.35}
+.ev .new{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:11px;background:var(--tag);color:#fff;padding:1px 6px;border-radius:2px}
+.ev.locked{background:transparent;border:1px dashed #b29f78;color:#a8946c;cursor:default}
+.ev.locked .no{color:#b9a67e}
+.ev.locked:hover{transform:none}
+.filter{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.filter button{border:1px solid #b29f78;background:transparent;border-radius:20px;padding:3px 12px;font-size:14px;color:var(--paper-ink)}
+.filter button[aria-pressed="true"]{background:var(--paper-ink);color:var(--paper);border-color:var(--paper-ink)}
+
+/* Modal */
+.scrim{position:fixed;inset:0;background:#05090dcc;display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal{background:var(--paper);color:var(--paper-ink);max-width:640px;width:100%;max-height:88%;overflow:auto;border-radius:4px;padding:26px;position:relative;
+  box-shadow:0 30px 80px #000}
+.modal .tagline{display:flex;gap:10px;align-items:baseline;margin-bottom:6px}
+.modal .tagline .no{font-family:var(--display);font-weight:900;font-size:34px;color:var(--tag);line-height:1}
+.modal .meta{font-family:var(--mono);font-size:13px;color:#6b5c43;margin:4px 0 14px}
+.modal .close{position:absolute;top:10px;right:12px;border:0;background:transparent;font-size:28px;line-height:1;color:var(--paper-ink)}
+.modal .body p{margin:0 0 10px}
+.modal .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.doc{background:#fbf5e6;border:1px solid #d4c39c;padding:14px 16px;font-family:var(--mono);font-size:14.5px;line-height:1.55;white-space:pre-wrap;margin:8px 0 12px}
+
+/* Interviews */
+.suspects{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:14px 0 20px}
+.sus{display:flex;gap:10px;align-items:center;text-align:left;background:transparent;border:2px solid #c7b48a;border-radius:4px;padding:10px;color:var(--paper-ink)}
+.sus[aria-pressed="true"]{border-color:var(--paper-ink);background:#f4ead2}
+.mono-badge{flex:0 0 auto;width:44px;height:44px;border-radius:3px;background:var(--paper-ink);color:var(--paper);display:grid;place-items:center;
+  font-family:var(--display);font-weight:900;font-size:22px}
+.sus .n{font-weight:600;line-height:1.15}
+.sus .r{font-size:12.5px;color:#6b5c43}
+.sus .lies{font-family:var(--mono);font-size:11px;color:var(--tag)}
+.profile{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;margin-bottom:14px}
+.profile .mono-badge{width:72px;height:72px;font-size:38px}
+.stmt{border-left:4px solid #b29f78;padding:10px 14px;margin:12px 0;background:#f4ead2;position:relative}
+.stmt .q{font-family:var(--mono);font-size:13px;color:#6b5c43;margin-bottom:4px}
+.stmt .a{font-family:var(--mono);font-size:15px}
+.stmt .row{display:flex;justify-content:flex-end;margin-top:8px}
+.stmt.lie{border-left-color:var(--tag)}
+.stmt .reply{margin-top:10px;padding-top:10px;border-top:1px dashed #b29f78;font-family:var(--mono);font-size:15px}
+.stamp{display:inline-block;font-family:var(--display);font-weight:900;font-size:20px;letter-spacing:.08em;color:var(--tag);border:3px solid var(--tag);
+  padding:0 8px;transform:rotate(-4deg);margin-bottom:6px;text-transform:uppercase}
+.stamp.anim{animation:stamp .35s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes stamp{from{transform:scale(2.4) rotate(-12deg);opacity:0}to{transform:scale(1) rotate(-4deg);opacity:1}}
+.picker{display:grid;gap:6px;margin-top:10px}
+.picker button{text-align:left;border:1px solid #c7b48a;background:#fbf5e6;padding:8px 10px;border-radius:3px;color:var(--paper-ink)}
+.picker button:hover{border-color:var(--paper-ink)}
+.picker .no{font-family:var(--display);font-weight:900;color:var(--tag);margin-right:8px}
+
+/* Board */
+.board-wrap{overflow:auto;border-radius:4px;border:6px solid #4b3520;height:min(72vh,720px);background:var(--cork);
+  background-image:radial-gradient(#00000022 1px, transparent 1.4px),radial-gradient(#ffffff14 1px, transparent 1.4px);
+  background-size:7px 7px,11px 11px;background-position:0 0,3px 5px}
+.board{position:relative;width:1500px;height:950px;touch-action:none}
+.board svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.board svg line{stroke:var(--string);stroke-width:3;stroke-linecap:round;pointer-events:stroke;cursor:pointer;filter:drop-shadow(0 2px 1px #0006)}
+.board svg line:hover{stroke:#ff5a5a}
+.pc{position:absolute;width:176px;background:#f4ead2;color:var(--paper-ink);padding:18px 12px 12px;border-radius:2px;
+  box-shadow:0 8px 14px -6px #000a;cursor:grab;user-select:none;-webkit-user-select:none;font-size:13.5px;line-height:1.3}
+.pc.photo{background:#fff}
+.pc.victim{background:#fbf5e6;border-top:6px solid var(--tag)}
+.pc.sel{outline:3px solid var(--tag)}
+.pc:active{cursor:grabbing}
+.pc .pin{position:absolute;top:-7px;left:50%;width:16px;height:16px;margin-left:-8px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#ff8a6a,var(--tag) 55%,#7a2410);box-shadow:0 3px 3px #0007}
+.pc .no{font-family:var(--display);font-weight:900;font-size:20px;color:var(--tag);line-height:1}
+.pc .t{font-weight:600}
+.pc .x{position:absolute;top:2px;right:4px;border:0;background:transparent;font-size:16px;color:#8a7a5c;padding:2px 4px}
+.board-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.board-bar .hint{flex:1 1 260px}
+
+/* Timeline */
+.tl{position:relative;margin-top:16px}
+.tl-row{display:grid;grid-template-columns:76px 18px 1fr;gap:10px;align-items:start;padding:7px 0;position:relative}
+.tl-row .tm{font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.tl-row .dot{width:12px;height:12px;border-radius:50%;background:var(--paper-ink);margin-top:5px;position:relative;z-index:1}
+.tl-row .src{font-family:var(--mono);font-size:12px;color:#7a6a4f}
+.tl::before{content:"";position:absolute;left:91px;top:6px;bottom:6px;width:2px;background:#b29f78}
+.tl-row.dark{background:repeating-linear-gradient(-45deg,#2b23180f 0 8px,transparent 8px 16px)}
+.tl-row.tod .dot{background:var(--tag)}
+.tl-row.tod{background:#e2552f1a}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13.5px;color:#6b5c43;margin-top:8px}
+.legend i{display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-right:5px;border-radius:2px}
+
+/* Accuse */
+fieldset{border:0;padding:0;margin:0 0 20px}
+legend{font-family:var(--display);font-weight:800;font-size:22px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:2px solid #c7b48a;border-radius:4px;padding:10px 12px;background:#f4ead2;cursor:pointer}
+.opt:has(input:checked){border-color:var(--tag);background:#fbefe0}
+.opt input{margin-top:4px;accent-color:var(--tag)}
+.verdict{text-align:center;padding:10px 0 0}
+.verdict .big{font-family:var(--display);font-weight:900;font-size:clamp(46px,10vw,88px);line-height:.9;text-transform:uppercase}
+.verdict .score{font-family:var(--mono);font-size:18px;margin-top:6px;font-variant-numeric:tabular-nums}
+.breakdown{max-width:520px;margin:18px auto;font-family:var(--mono);font-size:14.5px}
+.breakdown div{display:flex;justify-content:space-between;border-bottom:1px dashed #b29f78;padding:5px 0}
+.story{max-width:65ch;margin:0 auto}
+.story p{margin:0 0 12px}
+
+textarea{width:100%;min-height:160px;font-family:var(--mono);font-size:14.5px;background:#fbf5e6;color:var(--paper-ink);border:1px solid #c7b48a;border-radius:3px;padding:10px;resize:vertical}
+
+/* Toast */
+.toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:grid;gap:8px;z-index:60;width:min(420px,calc(100% - 32px))}
+.toast{background:var(--panel);color:var(--chalk);border-left:4px solid var(--tag);padding:10px 14px;border-radius:3px;font-size:14.5px;
+  box-shadow:0 10px 30px #000a;animation:tin .25s ease-out both}
+.toast b{color:var(--paper)}
+@keyframes tin{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+
+footer{max-width:1200px;margin:0 auto;padding:0 20px 30px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}
+footer button{background:transparent;border:1px solid var(--line);border-radius:3px;padding:3px 10px;color:var(--muted);font-size:13px}
+
+@media (max-width:520px){
+  .sheet{padding:18px 14px}
+  .tl-row{grid-template-columns:56px 14px 1fr}
+  .tl::before{left:68px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important}
+}
+
+/* Case select */
+.back{background:transparent;border:1px solid var(--line);color:var(--chalk);border-radius:3px;padding:4px 12px;font-family:var(--mono);font-size:13px;margin-bottom:6px}
+.back:hover{border-color:var(--tag);color:#fff}
+.notice{max-width:1200px;margin:0 auto 18px;padding:0 20px}
+.notice p{margin:0;padding:12px 16px;border-left:4px solid var(--tag);background:var(--panel);color:var(--chalk);font-size:15px;max-width:80ch}
+.cases{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:22px;max-width:1200px;margin:0 auto;padding:10px 20px 40px}
+.folder{position:relative;text-align:left;background:var(--paper);color:var(--paper-ink);border:0;border-radius:0 6px 6px 6px;padding:22px 20px 18px;
+  display:flex;flex-direction:column;gap:8px;min-height:250px;box-shadow:0 18px 40px -18px #000;transition:transform .15s}
+.folder::before{content:"";position:absolute;top:-14px;left:0;width:42%;height:16px;background:var(--paper);border-radius:6px 6px 0 0}
+.folder:hover{transform:translateY(-3px)}
+.folder .fno{font-family:var(--display);font-weight:900;font-size:44px;line-height:.8;color:var(--tag)}
+.folder h2{font-family:var(--display);font-weight:800;font-size:28px;text-transform:uppercase;line-height:.95;letter-spacing:.02em}
+.folder .where{font-family:var(--mono);font-size:13px;color:#6b5c43}
+.folder .bl{font-size:15px;line-height:1.4}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tg{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:2px;border:1px solid #a8946c;color:#5b4d36}
+.tg.real{background:var(--paper-ink);color:var(--paper);border-color:var(--paper-ink)}
+.tg.fic{border-style:dashed}
+.status{margin-top:auto;font-family:var(--mono);font-size:13px;border-top:1px dashed #b29f78;padding-top:8px;font-variant-numeric:tabular-nums}
+.status.win{color:#2f6b45;font-weight:700}
+.status.lose{color:var(--tag);font-weight:700}
+.solved-stamp{position:absolute;top:18px;right:16px;font-family:var(--display);font-weight:900;font-size:17px;letter-spacing:.08em;
+  border:3px solid currentColor;padding:0 7px;transform:rotate(6deg);text-transform:uppercase}
+.solved-stamp.win{color:#2f6b45}.solved-stamp.lose{color:var(--tag)}
+.record{display:flex;flex-wrap:wrap;gap:8px;max-width:1200px;margin:0 auto 6px;padding:0 20px}
+.realbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#2b2318;color:var(--paper);padding:10px 14px;border-radius:3px;margin:0 0 16px;font-size:14.5px}
+.realbar b{font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;color:#f3b49f}
+.memorial{max-width:65ch;margin:18px auto 0;text-align:center;font-family:var(--mono);font-size:14.5px;border-top:1px solid #b29f78;border-bottom:1px solid #b29f78;padding:12px 0}
+.sources{max-width:65ch;margin:18px auto 0;font-size:14.5px}
+.sources ol{padding-left:22px;margin:6px 0 0}
+.sources a{color:var(--paper-ink)}
+</style>
+</head>
+<body>
+<header class="top" id="head"></header>
+<nav class="tabs" role="tablist" id="tabs"></nav>
+<div id="select"></div>
+<main id="mainwrap"><section class="sheet" id="view"></section></main>
+<footer>
+  <span>The Vault · A Crime Vault game · Built by Kamohelo Mosiya · SitesByKamo. Real cases are summarised from court records and news reports; sources are listed in each case.</span>
+  <button type="button" data-act="ask-reset">Clear all progress</button>
+</footer>
+<div id="modal-root"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script>
+/* ================= CASE DATA ================= */
+/* Real cases: facts are paraphrased from court records and news reporting listed in each case's sources.
+   Wrong answers in real cases are theories that were considered at the time, never real innocent people. */
+
+const CASES = [
+/* ---------------------------------------------------------------- KILN (fiction) */
+{
+  id:"kiln", no:"000", title:"Lights Out at Kiln", real:false, kind:"Single killer", place:"Maboneng, Johannesburg", when:"Thursday 12 November 2026",
+  docket:"CAS 418/11/2026 · SAPS Johannesburg Central",
+  blurb:"A gallery owner is killed on opening night, minutes after load-shedding knocks out the CCTV. Four suspects, all with a reason.",
+  note:"Fiction. Every person and place in this case is invented.",
+  brief:`<p>Thursday night was the opening of <i>Gilded Township</i>, Nomsa Dlamini's first solo show. About 120 guests, wine, speeches. The event ended at 22:00, the same minute Stage 2 load-shedding hit Block 7.</p>
+<p>At 23:52 the security guard found the owner, <b>Lerato Khumalo</b>, dead in her upstairs office. Someone hit her from behind with the gallery's own award.</p>
+<p>The CCTV was off. You'll have to do this the old way.</p>`,
+  victim:{no:"VICTIM",t:"Lerato Khumalo, 46",s:"Owner, Kiln Gallery. Died 22:15–22:50."},
+  start:["E1","E2","E3","E4","E5","E6"],
+  evidence:{
+    E1:{no:"01",cat:"Scene",title:"Scene report",short:"Lerato Khumalo found dead in her upstairs office at 23:52.",meta:"Sgt. M. Zulu · Kiln Gallery, 14 Fox St, Maboneng",
+      body:`<p>The deceased, <b>Lerato Khumalo (46)</b>, owner of Kiln Gallery, was found on the floor of her upstairs office by security guard <b>Joseph Sithole</b> at 23:52. Head wound to the back of the skull. No sign of forced entry at the front.</p>
+<p>Her laptop was open on the desk. Downstairs, the <b>back-office safe was standing open</b>, opened with the code, not forced.</p>
+<div class="doc">GUARD'S STATEMENT (J. Sithole)
+Around 23:00 I heard a car leave the parkade next door.
+On my 23:50 round the fire-escape door at the back was
+propped open with a brick. That door is always locked.</div>`,
+      reveals:["E7","E8"],events:[{t:"23:00",x:"Guard hears a car leave the parkade (approx.)"},{t:"23:52",x:"Body found; fire-escape door propped open"}]},
+    E2:{no:"02",cat:"Forensic",title:"Post-mortem summary",short:"Blunt force trauma. Death between 22:15 and 22:50.",meta:"Dr N. Pillay · Forensic Pathology Service",
+      body:`<p>Cause of death: <b>blunt force trauma</b> to the back of the head, a single heavy blow from behind.</p><p>Estimated time of death: <b>22:15 to 22:50</b>.</p><p>Trace: small flakes of <b>gold leaf</b> on the left shoulder of her blouse.</p>`,
+      events:[{t:"22:15",x:"Earliest estimated time of death"},{t:"22:50",x:"Latest estimated time of death"}]},
+    E3:{no:"03",cat:"Forensic",title:"The weapon",short:"Bronze statuette, wiped clean, hidden behind a cabinet.",meta:"Item tag 418-03",
+      body:`<p>A bronze statuette engraved <b>"Joburg Gallery of the Year 2019 · Kiln"</b>, found pushed behind the filing cabinet in her office. Blood on the base matches the victim. It was <b>wiped clean</b>. Whoever used it knew to clean it and where to hide it.</p>`},
+    E4:{no:"04",cat:"Records",title:"Load-shedding schedule",short:"Stage 2 from 22:00. The CCTV recorder had no backup power.",meta:"City Power · Block 7 (Maboneng)",
+      body:`<div class="doc">STAGE 2   BLOCK 7   22:00 - 00:30</div><p>The inverter kept the lights running, but the <b>CCTV recorder was never wired to it</b>, so every camera went dark at 22:00. All staff and both owners knew.</p>`,
+      events:[{t:"22:00",x:"Load-shedding starts. All CCTV goes dark"},{t:"00:30",x:"Power restored"}]},
+    E5:{no:"05",cat:"Records",title:"Opening night door list",short:"The door host's notes on who left and when.",meta:"Kept by the door host · Event 18:00 to 22:00",
+      body:`<div class="doc">Ruth van Wyk ............ left 21:30 (Uber)
+Daniel Pretorius ........ said goodbye at door 21:45
+                          - didn't see him actually walk
+                            to the parkade, it was busy
+Nomsa Dlamini ........... left 22:00 with friends
+Kagiso Molefe (staff) ... stayed to pack up
+Lerato Khumalo .......... went upstairs ~21:50</div><p class="hint">The parkade next door logs every car on a battery-backed plate camera. Records requested.</p>`,
+      reveals:["E10"],events:[{t:"21:30",x:"Ruth van Wyk leaves"},{t:"21:45",x:"Daniel says goodbye at the door"},{t:"21:50",x:"Lerato goes upstairs"},{t:"22:00",x:"Nomsa leaves with friends; event ends"}]},
+    E6:{no:"06",cat:"Records",title:"Victim's call log",short:"Her last call was to Daniel at 22:02.",meta:"Cellphone records · Lerato Khumalo",
+      body:`<div class="doc">17:40  MISSED   Ruth vW        --
+22:02  OUTGOING Daniel P       1m48s
+       (no further activity)</div><p>Ruth's correspondence with the gallery has been requested.</p>`,
+      reveals:["E13"],events:[{t:"17:40",x:"Missed call from Ruth"},{t:"22:02",x:"Lerato calls Daniel (1 min 48 s)"}]},
+    E7:{no:"07",cat:"Digital",title:"Unsent email on laptop",short:"A draft to her attorney, saved at 21:58.",meta:"Draft · To: her attorney · Saved 21:58 · Not sent",
+      body:`<div class="doc">Ruth was right. The Mabaso certificates are fake and I know
+who signed them. Eleven pieces since 2023.
+
+I'm going to SAPS Commercial Crimes on Monday. I'm telling
+D. tonight. After twelve years he deserves to hear it from
+me first.
+
+L.</div>`,reveals:["E13"],events:[{t:"21:58",x:"Lerato saves a draft about fake certificates"}]},
+    E8:{no:"08",cat:"Scene",title:"Safe inventory",short:"R18,400 cash missing. Three people had the code.",meta:"Gallery bookkeeper",
+      body:`<p>Missing: the opening-night cash float, <b>R18,400</b>. Nothing else. Only <b>Lerato, Daniel and Kagiso</b> had the code. Staff lockers are being searched.</p>`,reveals:["E9"]},
+    E9:{no:"09",cat:"Scene",title:"Staff locker search",short:"The missing cash, in Kagiso Molefe's locker.",meta:"Item tag 418-09",
+      body:`<p>A gallery envelope with <b>R18,400</b> in notes, found in the locker of assistant <b>Kagiso Molefe</b>. No blood on the envelope or notes.</p>`},
+    E10:{no:"10",cat:"Records",title:"Parkade exit log",short:"Daniel's Audi left the parkade at 23:04.",meta:"Fox Street Parkade · plate camera",
+      body:`<div class="doc">ENTRY  17:12  Audi Q5  PRETORIUS D (monthly)
+EXIT   23:04  Audi Q5  PRETORIUS D (monthly)</div><p>The gallery's fire-escape stairs come down into the parkade.</p>`,
+      events:[{t:"23:04",x:"Daniel's Audi exits the parkade"}]},
+    E11:{no:"11",cat:"Records",title:"Bar card receipts",short:"Nomsa paid for drinks at 22:11, 22:47 and 23:26.",meta:"The Fox Rooftop, across the street",
+      body:`<div class="doc">22:11  N DLAMINI  R146.00
+22:47  N DLAMINI  R212.00
+23:26  N DLAMINI  R98.00</div><p>The barman confirms she never left before closing.</p>`,
+      events:[{t:"22:11",x:"Nomsa pays at the Fox Rooftop"},{t:"22:47",x:"Nomsa pays at the Fox Rooftop"},{t:"23:26",x:"Nomsa pays at the Fox Rooftop"}]},
+    E12:{no:"12",cat:"Records",title:"Uber trip receipt",short:"Ruth was dropped off in Saxonwold at 21:58.",meta:"Supplied by Ruth van Wyk",
+      body:`<div class="doc">Pickup   21:34  Fox St, Maboneng
+Drop-off 21:58  Saxonwold</div><p>Her household confirms she was home all night.</p>`,
+      events:[{t:"21:34",x:"Ruth's Uber picks her up"},{t:"21:58",x:"Ruth dropped home in Saxonwold"}]},
+    E13:{no:"13",cat:"Digital",title:"Ruth's complaint letter",short:"Ruth says the painting she bought is a forgery.",meta:"Email to Kiln Gallery · 2 November",
+      body:`<div class="doc">An independent appraiser says the Elias Mabaso landscape I
+bought from Kiln last year for R640,000 is a forgery. The
+"Mabaso Estate" certificate is not genuine. I expect a full
+refund within 30 days, or I go to my lawyers.
+
+Ruth van Wyk</div>`},
+    E14:{no:"14",cat:"Scene",title:"Desk drawer search",short:"A 'Mabaso Estate' stamp in Daniel's desk.",meta:"Search warrant executed Friday 10:15",
+      body:`<p>In a locked drawer of <b>Daniel Pretorius's</b> desk: a rubber stamp reading <b>"MABASO ESTATE · AUTHENTICATED"</b> and 14 blank certificates, three already signed with a copied signature.</p>`},
+    E15:{no:"15",cat:"Digital",title:"Photos from the opening",short:"Nomsa hugging Lerato at 19:32.",meta:"Kagiso Molefe's phone",
+      body:`<p>At <b>19:32</b>, after the speech, Nomsa hugs Lerato while wearing the gold-leaf jacket from her own exhibition. Other shots show Daniel by the bar, checking his phone.</p>`,
+      events:[{t:"19:32",x:"Nomsa hugs Lerato after the speech (photo)"}]},
+    E16:{no:"16",cat:"Witness",title:"What Kagiso heard",short:"A man shouting upstairs at about 22:12.",meta:"Revised statement · Kagiso Molefe",
+      body:`<div class="doc">When the power went I knew the cameras were off. I opened
+the safe. Around ten past ten I heard the fire door upstairs,
+then a man shouting in her office: "You'll finish us both."
+I went out the back at about twenty past. She was alive.</div>`,
+      events:[{t:"22:10",x:"Kagiso opens the safe"},{t:"22:12",x:"A man is heard shouting in Lerato's office"},{t:"22:20",x:"Kagiso leaves by the back door"}]},
+  },
+  bands:[{from:"22:15",to:"22:50",cls:"tod",label:"Time-of-death window",needs:"E2"},{from:"22:00",to:"24:30",cls:"dark",label:"Cameras dark",needs:"E4"}],
+  groups:{
+    daniel:{name:"Daniel Pretorius",init:"DP",role:"Co-owner, 52",bio:"Lerato's business partner for twelve years. Handles sales and paperwork.",
+      claims:[
+        {id:"d1",q:"When did you leave?",a:"About quarter to ten, before the load-shedding. I was home in Parkhurst by half past ten.",lie:["E10"],unlocks:["E14"],reply:"...All right. I sat in my car in the parkade to cool off. I never went back inside."},
+        {id:"d2",q:"When did you last speak to Lerato?",a:"At her speech. We didn't speak after that.",lie:["E6"],unlocks:["E14"],reply:"She phoned and said come up. I told her it could wait until Monday."},
+        {id:"d3",q:"Was the gallery in trouble?",a:"None. Best year we've had. No complaints.",lie:["E13"],unlocks:["E14"],reply:"Ruth van Wyk is a difficult client. It's being handled."},
+        {id:"d4",q:"Explain the stamp in your drawer.",a:"Lerato must have put it there. The certificates were her side of things.",lie:["E7"],needs:"E14",reply:"(He reads 'I'm telling D. tonight' twice.) I'd like to call my lawyer."}]},
+    nomsa:{name:"Nomsa Dlamini",init:"ND",role:"Featured artist, 31",bio:"The artist behind the exhibition. Argued with Lerato in front of guests at 21:00 about her contract.",onOpen:["E11"],
+      claims:[
+        {id:"n1",q:"What was the argument about?",a:"She takes sixty percent and wouldn't release me from my contract. Yes, I shouted."},
+        {id:"n2",q:"Where were you after ten?",a:"Straight across to the Fox Rooftop with friends until it closed. Check my card."},
+        {id:"n3",q:"How did you feel about her?",a:"She believed in me before anyone else did. I hugged her after the speech. I meant it."}]},
+    kagiso:{name:"Kagiso Molefe",init:"KM",role:"Gallery assistant, 24",bio:"Two years at Kiln. Photographed the opening. Had the safe code.",onOpen:["E15"],
+      claims:[
+        {id:"k1",q:"What did you do after the event?",a:"Packed the plinths downstairs and left. Take my photos from tonight if they help."},
+        {id:"k2",q:"Did you go near the safe?",a:"No. Only the bosses use the safe.",lie:["E9"],unlocks:["E16"],reply:"(He covers his face.) I took it. But I didn't hurt her. Someone was up there with her."}]},
+    ruth:{name:"Ruth van Wyk",init:"RV",role:"Art collector, 67",bio:"Kiln's biggest client. Bought the headline piece on opening night.",onOpen:["E12"],
+      claims:[
+        {id:"r1",q:"When did you leave?",a:"Before half past nine. My Uber will tell you exactly."},
+        {id:"r2",q:"Any problems with the gallery?",a:"None at all. Lerato was a friend.",lie:["E13"],reply:"Very well. The Mabaso I bought is a fake. Lerato swore she knew nothing, and I believed her."},
+        {id:"r3",q:"Who handled the certificates?",a:"Ask Daniel. The paperwork was always Daniel.",needsClaim:"r2"}]}
+  },
+  q1:{label:"Who killed Lerato Khumalo?",options:[{id:"daniel",label:"Daniel Pretorius",sub:"Co-owner"},{id:"nomsa",label:"Nomsa Dlamini",sub:"Featured artist"},{id:"kagiso",label:"Kagiso Molefe",sub:"Gallery assistant"},{id:"ruth",label:"Ruth van Wyk",sub:"Art collector"}],answer:"daniel"},
+  q2:{label:"Why?",options:[{id:"cash",label:"To steal the cash in the safe"},{id:"contract",label:"Anger over an unfair contract"},{id:"forgery",label:"To stop her exposing the forgery scheme"},{id:"revenge",label:"Revenge for being sold a forgery"}],answer:"forgery"},
+  strong:["E10","E7","E14","E6","E16"],
+  verdict:`<p><b>What really happened.</b> Daniel had been selling forgeries with "Mabaso Estate" certificates he stamped himself. When Ruth complained, Lerato checked every sale and worked out who signed them.</p>
+<p>At 21:45 Daniel said goodbye at the door but stayed in his car. At 22:02, with the cameras dark, Lerato called him up. He came back through the fire escape and propped the door with a brick. Kagiso, downstairs emptying the safe, heard him shout. When she turned away, Daniel struck her, wiped the statuette and hid it. He left the parkade at 23:04.</p>
+<p>The gold leaf came from Nomsa's hug at 19:32. Kagiso was a thief, not a killer. Ruth was home in Saxonwold.</p>`,
+  sources:[]
+},
+
+/* ---------------------------------------------------------------- VAN BREDA (real, SA, single) */
+{
+  id:"dezalze", no:"001", title:"The De Zalze Killings", real:true, kind:"Single killer", place:"Stellenbosch, Western Cape", when:"Tuesday 27 January 2015",
+  docket:"Western Cape High Court · State v Van Breda",
+  blurb:"A family is attacked inside a guarded golf estate. The surviving son says a masked intruder did it. Was there ever an intruder?",
+  note:"Real case. Three people were killed and a teenager was badly injured. No graphic detail.",
+  brief:`<p>Early on Tuesday 27 January 2015, the Van Breda family was attacked in their home on <b>De Zalze</b>, a guarded golf estate outside Stellenbosch. <b>Martin</b> and <b>Teresa van Breda</b> and their eldest son <b>Rudi</b> were killed. Their daughter <b>Marli</b>, 16, was critically injured.</p>
+<p>The fifth family member, <b>Henri</b>, had only light wounds. He told police a man in a balaclava had attacked them and run off.</p>
+<p>Your job is to test his account against the evidence the court heard and decide what happened inside that house.</p>`,
+  victim:{no:"IN MEMORY",t:"Martin, Teresa & Rudi van Breda",s:"Killed 27 Jan 2015. Marli survived."},
+  start:["V1","V2","V3","V4","V8"],
+  evidence:{
+    V1:{no:"01",cat:"Records",title:"The emergency call",short:"Henri phoned for an ambulance at 07:12.",meta:"Testimony of the call-centre operator",
+      body:`<p>At <b>07:12</b>, Henri van Breda phoned an emergency call centre asking for an ambulance.</p><p>The operator told the court she first thought the call was a prank. He was hesitant and calm, and she heard what sounded like a giggle. The call ran for <b>20 to 30 minutes</b>, longer than any she had taken for a similar crime.</p>`,
+      reveals:["V6"],events:[{s:432,t:"Tue 07:12",x:"Henri calls an emergency centre; operator first thinks it's a prank"}]},
+    V2:{no:"02",cat:"Scene",title:"The family",short:"Four of five attacked in the bedrooms. One left standing.",meta:"Court findings",
+      body:`<p>The house was on Goske Street, in the middle of the estate. Five family members were home: parents <b>Martin</b> and <b>Teresa</b>, sons <b>Rudi</b> and <b>Henri</b>, and daughter <b>Marli</b>, 16.</p>
+<p>Four of the five were attacked in a similar way, close together in the sleeping areas of the house, and left for dead. <b>Henri was the only one left standing.</b></p>`,
+      reveals:["V5","V10"]},
+    V3:{no:"03",cat:"Scene",title:"Estate security",short:"Electric fence, alarms, cameras, patrols. No breach found.",meta:"De Zalze estate security evidence",
+      body:`<p>De Zalze's perimeter had an <b>electrified fence</b>, an alarm system, <b>CCTV cameras</b>, and guards and dogs patrolling overnight.</p>
+<p>Every vehicle that came through the gate that night was accounted for. The fence was monitored and <b>no breach was detected</b>. Nobody on the estate reported strangers or anything unusual.</p>`},
+    V4:{no:"04",cat:"Forensic",title:"The weapons",short:"A small axe and a kitchen knife, both from the house.",meta:"Court findings",
+      body:`<p>The attacks were carried out with a <b>small axe</b> and a <b>kitchen knife</b>.</p><p>The court accepted the State's evidence that <b>both came from inside the Van Breda household</b>. Nothing was brought in from outside.</p>`},
+    V5:{no:"05",cat:"Forensic",title:"Henri's injuries",short:"Superficial, and unlike the others' wounds.",meta:"State expert witnesses",
+      body:`<p>Henri's wounds were <b>markedly different in nature and extent</b> from those of his family, even though he said the same attacker caused them.</p>
+<p>Two expert witnesses for the State found that some, if not all, of his injuries were <b>self-inflicted</b>. Their evidence was not contradicted.</p>`,
+      reveals:["V9"]},
+    V6:{no:"06",cat:"Forensic",title:"Time of the attacks",short:"Probably 04:00 to 04:24, about three hours before the call.",meta:"Judgment, Judge Siraj Desai",
+      body:`<p>The court found the attacks were <b>probably committed between 04:00 and 04:24</b>.</p><p>Help was only called at 07:12, roughly <b>three hours later</b>. The judge found Henri had ample time to tamper with the scene.</p>`,
+      reveals:["V7"],events:[{s:240,t:"Tue 04:00",x:"Earliest time of the attacks (court finding)"},{s:264,t:"Tue 04:24",x:"Latest time of the attacks (court finding)"}]},
+    V7:{no:"07",cat:"Digital",title:"Phone search history",short:"He looked up emergency numbers hours before calling.",meta:"Evidence led at trial",
+      body:`<p>The court heard that Henri had <b>searched online for emergency call numbers hours before</b> he actually placed the call at 07:12.</p>`},
+    V8:{no:"08",cat:"Witness",title:"The neighbour",short:"Raised voices from the house late on Monday night.",meta:"Testimony of the neighbour at No. 10",
+      body:`<p>The neighbour renting the house next door testified she heard <b>raised voices</b> coming from the Van Breda home between about <b>22:00 and shortly after midnight</b> on the Monday night.</p>
+<p>The defence said the men had been watching a film on a new home theatre system. She insisted what she heard was not a film. She didn't call security because she didn't think anyone would be hurt.</p>`,
+      events:[{s:-120,t:"Mon 22:00",x:"Neighbour hears raised voices begin"},{s:15,t:"Tue 00:15",x:"Voices stop, shortly after midnight"}]},
+    V9:{no:"09",cat:"Forensic",title:"The blackout claim",short:"Experts: his injuries don't fit losing consciousness.",meta:"Expert evidence, judgment",
+      body:`<p>Henri said he fell down the stairs and lost consciousness, which explained why help wasn't called sooner.</p><p>Expert evidence found he <b>did not have injuries consistent with losing consciousness</b> from a knock to the head. The judge found the explanation unconvincing.</p>`},
+    V10:{no:"10",cat:"Witness",title:"Marli's memory",short:"The only other survivor cannot remember the night.",meta:"Medical reports",
+      body:`<p>Marli survived severe head injuries. She was left with <b>retrograde amnesia</b> and cannot remember the night of the attack.</p><p>She could not tell investigators, or the court, what happened.</p>`},
+  },
+  bands:[{from:240,to:264,cls:"tod",label:"Time of the attacks",needs:"V6"}],
+  groups:{
+    henri:{name:"Henri van Breda",init:"HV",role:"Surviving son · his account",bio:"His version of events, given to police and in court. Test each part against the evidence.",
+      claims:[
+        {id:"h1",q:"What happened?",a:"A man in a balaclava, dark clothes and gloves attacked my family. He was laughing. Then he ran off.",lie:["V3"],reply:"The court found no credible evidence that any intruder entered the estate that night."},
+        {id:"h2",q:"What was the attacker carrying?",a:"He was armed with an axe and a knife.",lie:["V4"],reply:"Both weapons came from the family's own home. An intruder would have had to arrive unarmed."},
+        {id:"h3",q:"How were you hurt?",a:"I was injured fighting the attacker off.",lie:["V5"],reply:"Uncontradicted expert evidence found his wounds were self-inflicted."},
+        {id:"h4",q:"Why wait until 07:12 to call?",a:"I fell down the stairs and blacked out.",lie:["V9","V7"],reply:"The medical evidence didn't support a blackout, and he had searched for emergency numbers hours earlier."}]},
+    neighbour:{name:"The neighbour",init:"N10",role:"Lived at No. 10",bio:"Testified for the State about what she heard the night before.",
+      claims:[{id:"nb1",q:"What did you hear?",a:"Raised voices from that house, from about ten until just after midnight."}]},
+    defence:{name:"The defence",init:"DEF",role:"Henri's legal team",bio:"Arguments made on Henri's behalf at trial.",
+      claims:[{id:"df1",q:"What were the voices?",a:"The men were watching a film on a new home theatre system."},
+        {id:"df2",q:"Can the State prove there was no intruder?",a:"The State hasn't proved beyond reasonable doubt that no unknown attacker was in the house."}]}
+  },
+  q1:{label:"Who attacked the Van Breda family?",options:[{id:"one",label:"An intruder who got into the estate",sub:"Henri's version"},{id:"two",label:"Two intruders working together",sub:"Henri said there may have been two"},{id:"henri",label:"Henri van Breda",sub:"The surviving son"}],answer:"henri"},
+  q2:{label:"What kind of case convicted him?",options:[{id:"conf",label:"A confession"},{id:"eye",label:"An eyewitness"},{id:"dna",label:"DNA on the weapon"},{id:"circ",label:"Circumstantial evidence that only pointed one way"}],answer:"circ"},
+  strong:["V3","V4","V5","V6","V7","V9","V2"],
+  verdict:`<p>On <b>21 May 2018</b>, after a 66-day trial in the Western Cape High Court, Judge Siraj Desai found <b>Henri van Breda</b> guilty of murdering his father Martin, his mother Teresa and his brother Rudi, of the attempted murder of his sister Marli, and of defeating the ends of justice.</p>
+<p>There was <b>no direct evidence</b>: no confession and no eyewitness. The judge said each fact on its own might not prove guilt, but taken together they left only one reasonable inference. There was no breach of the estate, the weapons came from the house, his wounds were self-inflicted, and he changed his account when it clashed with the evidence.</p>
+<p>On <b>7 June 2018</b> he was sentenced to three life terms, 15 years for attempted murder and 12 months for defeating the ends of justice, to run concurrently. He was later refused leave to appeal. He has continued to say an intruder was responsible.</p>`,
+  memorial:"Martin van Breda · Teresa van Breda · Rudi van Breda. Marli van Breda survived.",
+  sources:[
+    {t:"News24: 11 facts that led to Henri van Breda's conviction",u:"https://www.news24.com/SouthAfrica/News/11-facts-that-led-to-henri-van-bredas-conviction-20180521"},
+    {t:"News24: Operator thought Van Breda emergency call was a prank",u:"https://www.news24.com/SouthAfrica/News/operator-thought-van-breda-emergency-call-was-a-prank-court-hears-20170516"},
+    {t:"Daily Maverick: Henri van Breda found guilty of family axe slayings",u:"https://www.dailymaverick.co.za/article/2018-05-21-henri-van-breda-found-guilty-of-family-axe-slayings/"},
+    {t:"OFM: Judgment being delivered in Van Breda murder case",u:"https://www.ofm.co.za/article/national/262344/judgment-being-delivered-in-vanbreda-murder-case"},
+    {t:"IOL: Van Breda to spend first night behind bars",u:"https://www.iol.co.za/news/south-africa/western-cape/vanbreda-to-spend-first-night-behind-bars-after-guilty-verdict-15091086"},
+    {t:"NPA: Henri van Breda sentenced to three life terms",u:"https://www.npa.gov.za/sites/default/files/media-releases/Henri%20Van%20Breda%20Sentenced%20To%20Three%20Life%20Terms%20And%2015%20Years%20For%20Murders%20Of%20His%20Family%20And%20Attempted%20Murder%20Of%20His%20Sister.pdf"},
+    {t:"Nattrass & Watermeyer (Wits): Communication breakdown in a complex emergency call",u:"https://wiredspace.wits.ac.za/bitstreams/23bd465a-42cd-441c-ab1c-8f786edc07da/download"},
+    {t:"Wikipedia: Van Breda murders",u:"https://en.wikipedia.org/wiki/Van_Breda_murders"}]
+},
+
+/* ---------------------------------------------------------------- ABC (real, SA, serial) */
+{
+  id:"abc", no:"002", title:"The ABC Murders", real:true, kind:"Serial killer", place:"Gauteng", when:"July 1994 – November 1995",
+  docket:"Pretoria Murder & Robbery Unit · Special investigation",
+  blurb:"Women are found murdered in Atteridgeville, Boksburg and Cleveland. One killer or many? And how is he finding them?",
+  note:"Real case. Dozens of women were murdered; some were never identified. No graphic detail.",
+  brief:`<p>From July 1994, the bodies of women began to be found in <b>Atteridgeville</b> near Pretoria, then around <b>Boksburg</b> on the East Rand, and in <b>Cleveland</b> in Johannesburg. The press named them the ABC murders.</p>
+<p>A special team was formed in the Pretoria Murder and Robbery Unit. At first, differences between the scenes made it hard to say whether one man was responsible.</p>
+<p>Work through the evidence and decide: how many killers were there, and how were the victims chosen?</p>`,
+  victim:{no:"IN MEMORY",t:"The women of the ABC murders",s:"At least 38 killed, 1994–1995. Some never identified."},
+  start:["A1","A2","A3","A4"],
+  evidence:{
+    A1:{no:"01",cat:"Scene",title:"Three areas, one pattern?",short:"Victims found in Atteridgeville, Boksburg and Cleveland.",meta:"Investigation summary",
+      body:`<p>Between <b>July 1994 and late 1995</b>, women were found murdered in three areas far apart: Atteridgeville, Boksburg and Cleveland. Most had been strangled, often with their own clothing.</p>
+<p>A special investigation team was set up in Pretoria. Variations between the attacks made it hard, at first, to confirm a single killer.</p>`,
+      events:[{s:19940716,t:"16 Jul 1994",x:"First murder later attributed to the ABC killer"}]},
+    A2:{no:"02",cat:"Witness",title:"What the families said",short:"Again and again: she went to meet a man about a job.",meta:"Statements from relatives, friends and co-workers",
+      body:`<p>Across the cases, victims' relatives, friends and co-workers told detectives the same thing: before she disappeared, she had gone to <b>meet a man about a job offer</b>.</p>
+<p>Many of the women were unemployed and looking for work.</p>`,
+      reveals:["A7"]},
+    A3:{no:"03",cat:"Witness",title:"The Beyers Park witness",short:"A man walked into the veld with a woman and came back alone.",meta:"Boksburg · 17 July 1995",
+      body:`<p>A man living in a caravan in Beyers Park, Boksburg, watched a man and a woman walk into the veld some distance from his home. Later the man came back <b>alone</b>, looking around as though he wanted to leave fast.</p>
+<p>The woman was <b>Josephine Mantsali Mlangeni</b>, 25, a mother of four. She had gone to meet someone about a <b>job offer</b>.</p>`,
+      events:[{s:19950717,t:"17 Jul 1995",x:"Witness sees a man return alone from the veld in Beyers Park"}]},
+    A4:{no:"04",cat:"Scene",title:"Van Dyk Mine",short:"Ten bodies recovered near Boksburg in 48 hours.",meta:"September 1995",
+      body:`<p>On <b>16 September 1995</b>, a body was found at the Van Dyk Mine near Boksburg. Over the next 48 hours, forensic teams recovered <b>ten bodies</b>.</p>
+<p>Investigators became certain the Boksburg victims were <b>linked to those in Atteridgeville</b>.</p>`,
+      reveals:["A5"],events:[{s:19950916,t:"16 Sep 1995",x:"Van Dyk Mine: ten bodies recovered over two days"}]},
+    A5:{no:"05",cat:"Scene",title:"A handbag at the scene",short:"An ID book names a victim, and leads to a job offer.",meta:"Boksburg scene",
+      body:`<p>A handbag recovered at the Boksburg scene held an identity document. It identified <b>Amelia Rapodile</b>, who was last seen on <b>7 September 1995</b> on her way to meet a man about a job.</p>
+<p>Investigators found a <b>job application</b> showing she had been offered a position. It connected her to a man named <b>Moses Sithole</b>.</p>`,
+      reveals:["A6"],events:[{s:19950907,t:"7 Sep 1995",x:"Amelia Rapodile last seen, going to meet a man about a job"}]},
+    A6:{no:"06",cat:"Witness",title:"Kids Haven",short:"A second victim, the same job offer, the same man.",meta:"Kids Haven children's charity, Benoni",
+      body:`<p><b>Tryphina Mogotsi</b> worked in the laundry at Kids Haven, a Benoni organisation for street children. She told a co-worker she was excited about a job offer and had an appointment with the man.</p>
+<p>A social worker confirmed <b>Moses Sithole had visited Kids Haven twice</b>. Her co-worker later identified him from a security camera photo as the man with the appointment.</p>
+<p>With a second victim tied to the same man, police were confident they had their suspect.</p>`,
+      reveals:["A8","A9"]},
+    A7:{no:"07",cat:"Witness",title:"Many names",short:"Witnesses knew him as Martin, Sello, Piet, David.",meta:"Trial testimony",
+      body:`<p>Witnesses in different cases described a man offering jobs who used different names: <b>"Martin"</b>, <b>"Sello"</b>, <b>"Piet Tsotsetsi"</b>, <b>"David Ngobeni"</b>.</p><p>At trial, they identified him as the same person: Moses Sithole.</p>`},
+    A8:{no:"08",cat:"Records",title:"The call to The Star",short:"A man phones a journalist and claims 76 victims.",meta:"3 October 1995",
+      body:`<p>On <b>3 October 1995</b>, the day Agnes Mbuli's body was found near Benoni, a man phoned journalist <b>Tamsen de Beer</b> at <i>The Star</i>. He said he was the killer and claimed <b>76 victims</b>, about twice the number police knew of.</p>
+<p>He said the killings were revenge for being wrongly imprisoned. To prove who he was, he gave directions to where a body had been left.</p>`,
+      reveals:["A10"],events:[{s:19951003,t:"3 Oct 1995",x:"Caller tells The Star he is the killer"}]},
+    A9:{no:"09",cat:"Records",title:"His record",short:"A rape conviction, and women who'd been lured the same way.",meta:"Criminal record and trial testimony",
+      body:`<p>Sithole had served a prison sentence for rape at <b>Boksburg Prison</b>.</p>
+<p>Women he had attacked in the late 1980s testified that he had used false names, including "Martin", back then too.</p>`},
+    A10:{no:"10",cat:"Records",title:"The video",short:"Recorded in custody: he admits 29 murders.",meta:"Trial exhibit · 3 December 1996",
+      body:`<p>At trial the prosecution introduced a <b>video recorded during his custody</b> in which Sithole openly admitted to <b>29 murders</b>.</p><p>He had pleaded not guilty.</p>`,
+      reveals:["A11"],events:[{s:19961203,t:"3 Dec 1996",x:"Prosecution plays the video confession in court"}]},
+    A11:{no:"11",cat:"Forensic",title:"The jewellery",short:"A watch, necklace and rings taken from victims.",meta:"Trial testimony",
+      body:`<p>In court, his estranged wife identified a watch, a necklace and rings as belonging to Sithole. The prosecution said they had been <b>taken from some of the murdered women</b>.</p>`},
+  },
+  bands:[],
+  groups:{
+    team:{name:"Early investigation",init:"INV",role:"Working theory, 1994–95",bio:"What the evidence seemed to say before the cases were connected.",
+      claims:[{id:"e1",q:"One killer or several?",a:"The scenes are too different. These are several unconnected killers.",lie:["A4","A7"],reply:"The Boksburg victims were linked to Atteridgeville, and witnesses across cases named the same man under different aliases."}]},
+    public:{name:"Public fear",init:"PUB",role:"Gauteng, 1995",bio:"What people believed while the killings continued.",
+      claims:[{id:"p1",q:"How does he choose victims?",a:"He snatches women off the street at random.",lie:["A2","A3","A6"],reply:"Victims had appointments. He lured women who were looking for work with fake job offers."}]},
+    caller:{name:"The caller",init:"TEL",role:"Phoned The Star, Oct 1995",bio:"The man who phoned a journalist claiming to be the killer.",
+      claims:[{id:"c1",q:"How many?",a:"I have killed 76 women."},{id:"c2",q:"Why?",a:"It's revenge for being wrongly put in prison."}]},
+    accused:{name:"Moses Sithole",init:"MS",role:"Accused · on trial from Oct 1996",bio:"Arrested in October 1995. His plea at trial.",
+      claims:[{id:"t1",q:"How do you plead?",a:"Not guilty.",lie:["A10","A11"],reply:"The court saw his recorded admission to 29 murders and heard that victims' belongings were linked to him."}]}
+  },
+  q1:{label:"Who was behind the ABC murders?",options:[{id:"many",label:"Several unconnected killers"},{id:"random",label:"One man choosing strangers at random"},{id:"sithole",label:"Moses Sithole, luring women with fake job offers"}],answer:"sithole"},
+  q2:{label:"How did investigators first put a name to him?",options:[{id:"prints",label:"Fingerprints at a scene"},{id:"jobs",label:"Victims' job appointments and the people who'd met him"},{id:"dna",label:"A DNA database match"},{id:"tip",label:"An anonymous tip"}],answer:"jobs"},
+  strong:["A5","A6","A4","A10","A11","A7","A3"],
+  verdict:`<p>On <b>18 October 1995</b> police set a trap at a factory in Benoni, where Sithole had arranged to meet his brother-in-law. He attacked an officer with an axe and was shot and wounded before being taken into custody. Five days later he was charged with 29 murders in the Brakpan magistrate's court.</p>
+<p>His trial began on 21 October 1996, with the charges expanded to <b>38 murders, 40 rapes and 6 robberies</b>. In <b>December 1997</b> he was found guilty on all counts and sentenced to <b>2,410 years</b> in prison, with no possibility of parole for 930 years.</p>
+<p>The case was cracked through the victims themselves: the job appointments they told people about, and the witnesses who had met the man offering the work.</p>`,
+  memorial:"Josephine Mantsali Mlangeni · Amelia Rapodile · Tryphina Mogotsi · Agnes Sibongile Mbuli · Beauty Ntombi Ndabeni · and every woman killed, including those never identified.",
+  sources:[
+    {t:"Crime+Investigation: Moses Sithole, South Africa's worst serial killer",u:"https://www.crimeandinvestigation.co.uk/crime-files/moses-sithole-south-africas-worst-serial-killer"},
+    {t:"Biography: Moses Sithole",u:"https://www.biography.com/crime/moses-sithole"},
+    {t:"Crime Library: Moses Sithole, Near Miss",u:"https://crimelibrary.org/serial_killers/predators/moses_sithole/4.html"},
+    {t:"Crime Library: Moses Sithole, Phone Calls",u:"https://www.crimelibrary.org/serial_killers/predators/moses_sithole/7.html"},
+    {t:"Crime Library: Moses Sithole, trial testimony",u:"https://crimelibrary.org/serial_killers/predators/moses_sithole/12.html"},
+    {t:"Mail & Guardian: Love born and killed in jail (1996)",u:"https://mg.co.za/article/1996-11-29-love-born-and-killed-in-jail/"},
+    {t:"EWN: The ABC Killer documentary",u:"https://ewn.co.za/the-abc-killer-new-doccie-sheds-light-on-sa-s-most-notorious-serial-killer"},
+    {t:"Wikipedia: Moses Sithole",u:"https://en.wikipedia.org/wiki/Moses_Sithole"}]
+},
+
+/* ---------------------------------------------------------------- WATTS (real, US, single) */
+{
+  id:"frederick", no:"003", title:"The Frederick Disappearance", real:true, kind:"Single killer", place:"Frederick, Colorado, USA", when:"Monday 13 August 2018",
+  docket:"Frederick Police Department · Weld County District Court",
+  blurb:"A pregnant mother and her two daughters vanish overnight. Her husband pleads on TV for them to come home.",
+  note:"Real case. A mother, her two young daughters and her unborn son were killed. No graphic detail.",
+  brief:`<p>On Monday 13 August 2018, <b>Shanann Watts</b>, 34 and 15 weeks pregnant, and her daughters <b>Bella</b>, 4, and <b>Celeste</b>, 3, could not be found at their home in Frederick, a town north of Denver.</p>
+<p>Her husband, <b>Chris Watts</b>, said he'd left for work before dawn while they were still in bed. The next day he gave TV interviews asking them to come home.</p>
+<p>Test his account and decide what happened to the family.</p>`,
+  victim:{no:"IN MEMORY",t:"Shanann, Bella & Celeste Watts",s:"And unborn son Nico. 13 August 2018."},
+  start:["W1","W2","W4","W5"],
+  evidence:{
+    W1:{no:"01",cat:"Witness",title:"The friend's call",short:"Shanann missed a doctor's appointment and wasn't answering.",meta:"Arrest affidavit",
+      body:`<p>A friend and colleague had driven Shanann home from the airport just before <b>2 a.m.</b> after a work trip.</p>
+<p>Later that morning Shanann <b>missed a 10 a.m. doctor's appointment</b> and stopped answering calls and texts. The friend went to the house around midday, then called Chris at work and the police.</p>`,
+      events:[{s:600,t:"Mon 10:00",x:"Shanann misses her doctor's appointment"},{s:730,t:"Mon ~12:10",x:"Friend arrives at the house, calls police and Chris"}]},
+    W2:{no:"02",cat:"Scene",title:"The locked house",short:"Every door and window locked. Nobody inside.",meta:"Arrest affidavit",
+      body:`<p>The first officer found <b>all doors and windows locked</b>. He called Chris for the garage keypad code. Chris came home instead and let the officer in.</p><p>Shanann and the girls were not there.</p>`,
+      reveals:["W3"]},
+    W3:{no:"03",cat:"Scene",title:"What she left behind",short:"Phone, purse, keys, medication. Her car, with the car seats.",meta:"Search of the house",
+      body:`<p>Inside the house: Shanann's <b>purse with her keys and medication</b> on the kitchen counter, her wallet, and her <b>phone pushed between the couch cushions</b>. A suitcase sat at the bottom of the stairs.</p>
+<p>Her car was in the garage with <b>the girls' car seats still inside</b>.</p>`,
+      reveals:["W6"]},
+    W4:{no:"04",cat:"Digital",title:"The neighbour's camera",short:"01:48 she's dropped off. 05:27 his truck backs up to the house.",meta:"Neighbour's home security video",
+      body:`<p>A neighbour's camera covered the driveway.</p>
+<div class="doc">01:48  Friend's car drops Shanann off and leaves
+05:27  Chris's work truck backs into the driveway,
+       up to the garage, and leaves a short time later</div>
+<p>Neighbours said he usually parked on the street. The video doesn't show what was loaded. Watching it with police, the neighbour said Chris was <b>"not acting right"</b>.</p>`,
+      events:[{s:108,t:"Mon 01:48",x:"Shanann dropped home (camera)"},{s:327,t:"Mon 05:27",x:"Chris's truck backs up to the garage, then leaves (camera)"}]},
+    W5:{no:"05",cat:"Records",title:"The TV interviews",short:"Chris asks his family to come home.",meta:"Local news · Tuesday 14 August",
+      body:`<p>On Tuesday, Chris gave interviews to local TV stations. He pleaded for his family's safe return and said the house felt empty without the girls watching cartoons or running to meet him at the door.</p>`,
+      events:[{s:1440+720,t:"Tue 14 Aug",x:"Chris gives TV interviews asking his family to come home"}]},
+    W6:{no:"06",cat:"Digital",title:"The affair",short:"He was seeing a co-worker, which he had denied.",meta:"Investigation",
+      body:`<p>Detectives learned Chris was having an <b>affair with a co-worker</b>, which he had denied in his earlier interviews. The co-worker contacted police herself after seeing the news.</p>`,
+      reveals:["W7","W8"]},
+    W7:{no:"07",cat:"Records",title:"The marriage",short:"He'd said he no longer loved her and didn't want a third child.",meta:"Released case files",
+      body:`<p>Case files showed Chris had told Shanann he was <b>no longer in love with her</b> and did not want a third child.</p><p>He told police he raised separating with her the morning she disappeared.</p>`},
+    W8:{no:"08",cat:"Records",title:"The polygraph",short:"He fails, admits the affair, then gives a first confession.",meta:"Arrest affidavit · Wednesday 15 August",
+      body:`<p>Chris <b>failed a polygraph</b> and admitted the affair. After asking to speak with his father, he admitted killing Shanann.</p>
+<p>He claimed he did it in a rage after seeing <b>Shanann harming one of their daughters</b>. He was arrested that night and fired by his employer, the oil company Anadarko.</p>`,
+      reveals:["W9"],events:[{s:2880+1260,t:"Wed 15 Aug",x:"Polygraph, first confession, arrest"}]},
+    W9:{no:"09",cat:"Scene",title:"The oil site",short:"The family is found where he worked.",meta:"Thursday 16 August",
+      body:`<p>Chris told investigators where to look: an <b>Anadarko oil work site near Roggen</b>, about 40 miles east of the home, where he had worked.</p><p>Shanann was found buried there. The girls were found nearby.</p>`,
+      reveals:["W10"],events:[{s:4320+720,t:"Thu 16 Aug",x:"The family is found at the oil site"}]},
+    W10:{no:"10",cat:"Forensic",title:"The autopsies",short:"The findings didn't match his story.",meta:"Autopsy reports, released November 2018",
+      body:`<p>The autopsies found that both girls had been <b>smothered</b>, and that Bella showed signs she had fought back. Shanann had been strangled.</p>
+<p>Prosecutors called his account of Shanann harming the girls <b>"a flat-out lie"</b>.</p>`},
+  },
+  bands:[],
+  groups:{
+    chris:{name:"Chris Watts",init:"CW",role:"Husband · his account",bio:"What he told police, reporters and investigators before his plea.",
+      claims:[
+        {id:"w1",q:"Where did Shanann say she was going?",a:"She told me she and the girls would go to a friend's house later that day.",lie:["W3"],reply:"She left her phone, purse, keys, medication and her car with the car seats. She never left the house."},
+        {id:"w2",q:"Is there anyone else?",a:"No. There's no affair.",lie:["W6"],reply:"He was in an affair with a co-worker, and later admitted it."},
+        {id:"w3",q:"What happened to the girls?",a:"I saw Shanann harming our daughter, and I killed her in a rage.",lie:["W10"],reply:"The autopsies didn't match this. He later pleaded guilty to killing all three."},
+        {id:"w4",q:"How was the conversation that morning?",a:"Emotional, but civil. We weren't arguing."}]},
+    neighbour:{name:"The neighbour",init:"NB",role:"Owned the camera",bio:"Showed police and Chris the driveway footage.",
+      claims:[{id:"nb",q:"What did you notice?",a:"He's not acting right. I've never seen him this fidgety."}]}
+  },
+  q1:{label:"What happened to Shanann, Bella and Celeste?",options:[{id:"left",label:"Shanann left voluntarily with the girls"},{id:"stranger",label:"A stranger took them"},{id:"story",label:"Shanann harmed the girls, then Chris killed her"},{id:"chris",label:"Chris Watts killed all three"}],answer:"chris"},
+  q2:{label:"What did prosecutors say drove him?",options:[{id:"money",label:"Money trouble"},{id:"out",label:"He wanted out of his marriage and family"},{id:"self",label:"Self-defence"},{id:"custody",label:"A custody fight"}],answer:"out"},
+  strong:["W3","W4","W6","W8","W10","W7","W9"],
+  verdict:`<p>On <b>6 November 2018</b>, Chris Watts pleaded guilty to nine counts, including three counts of first-degree murder, unlawful termination of a pregnancy and tampering with a deceased human body. Shanann's family agreed to a plea deal that took the death penalty off the table.</p>
+<p>On <b>19 November 2018</b> he was sentenced to consecutive <b>life terms without parole</b>, plus 84 more years. Prosecutors said he had been having an affair and wanted to escape his marriage and growing family.</p>
+<p>His first story, that Shanann had harmed the girls, was disproved by the evidence. The things she left behind showed she never left the house.</p>`,
+  memorial:"Shanann Watts · Bella Watts · Celeste \"CeCe\" Watts · Nico Watts, unborn.",
+  sources:[
+    {t:"Action News Jax: Arrest affidavit details",u:"https://www.actionnewsjax.com/news/chris-watts-shanann-watts-colorado/817876880"},
+    {t:"WFMY: Affidavit, Watts claimed wife killed daughters",u:"https://wfmynews2.com/article/news/crime/affidavit-man-with-nc-ties-claimed-wife-killed-daughters-then-he-killed-her/83-585969436"},
+    {t:"Patch: Murder charges expected in Frederick killings",u:"https://patch.com/colorado/boulder/murder-charges-expected-killings-frederick-mother-girls"},
+    {t:"CBS Colorado: Investigators learn of affair",u:"https://www.cbsnews.com/colorado/news/affidavit-chris-watts-affair-shanann"},
+    {t:"ABC7 Chicago: Watts sentenced to life with no parole",u:"https://abc7chicago.com/chris-watts-sentenced-to-life-in-prison-for-killing-pregnant-wife-2-daughters/4718484/"},
+    {t:"ABC7 NY: Watts gets life in prison",u:"https://abc7ny.com/man-gets-life-sentence-for-murdering-pregnant-wife-daughters/4718014/"},
+    {t:"KIRO 7: Released case files",u:"https://www.kiro7.com/news/trending-now/god-almighty-son-watch-chris-watts-confess-to-murdering-pregnant-wife-shanann/881119826"},
+    {t:"Wikipedia: Watts family murders",u:"https://en.wikipedia.org/wiki/Watts_family_murders"}]
+},
+
+/* ---------------------------------------------------------------- GSK (real, US, serial) */
+{
+  id:"gsk", no:"004", title:"The Golden State Killer", real:true, kind:"Serial killer", place:"California, USA", when:"1975 – 1986, solved 2018",
+  docket:"Sacramento County DA · multi-county task force",
+  blurb:"Break-ins, attacks and murders across California, then silence for 30 years. Can you follow the trail to a name?",
+  note:"Real case. 13 people were murdered and dozens more were attacked. No graphic detail.",
+  brief:`<p>In the mid-1970s, a prowler broke into homes in Visalia. Then a night-time attacker terrorised the Sacramento area. Then, from 1979, couples were murdered in their homes in Southern California. The last known killing was in <b>1986</b>, and then the trail went cold.</p>
+<p>For decades, police in different regions chased what they thought were different men under different names: the Visalia Ransacker, the East Area Rapist, the Original Night Stalker.</p>
+<p>Follow the evidence forward in time. Is this one man? And what finally gave him a name?</p>`,
+  victim:{no:"IN MEMORY",t:"Victims across California",s:"13 murdered (1975–1986). Dozens of survivors."},
+  start:["G1","G2","G3"],
+  evidence:{
+    G1:{no:"01",cat:"Records",title:"The Visalia Ransacker",short:"About 100 break-ins in Visalia in the mid-1970s.",meta:"Visalia, Tulare County",
+      body:`<p>In the mid-1970s, a serial burglar broke into about <b>100 homes</b> in Visalia. Police there called him the Visalia Ransacker.</p><p>The case was later linked to a 1975 killing in Tulare County.</p>`,
+      events:[{s:1975,t:"1975",x:"Visalia Ransacker break-ins; a killing in Tulare County"}]},
+    G2:{no:"02",cat:"Records",title:"The East Area Rapist",short:"Night-time home attacks around Sacramento.",meta:"Sacramento area, 1976–1979",
+      body:`<p>From 1976, a masked attacker broke into homes at night around Sacramento. When he found a couple, he would tie up the man and pile dishes on his back to warn him not to move.</p>
+<p>In 1978, a young couple, <b>Brian and Katie Maggiore</b>, were killed while walking their dog in a Sacramento suburb.</p>`,
+      events:[{s:1976,t:"1976",x:"East Area Rapist attacks begin around Sacramento"},{s:1978,t:"1978",x:"Brian and Katie Maggiore killed in a Sacramento suburb"}]},
+    G3:{no:"03",cat:"Scene",title:"The Original Night Stalker",short:"Couples murdered in their homes in Southern California.",meta:"Orange, Ventura & Santa Barbara counties, 1979–1986",
+      body:`<p>From 1979, people were killed in their homes in Southern California. In 1980, <b>Lyman and Charlene Smith</b> were killed in Ventura, and <b>Keith and Patrice Harrington</b> in Dana Point.</p>
+<p>The last known killing was in <b>1986</b>: <b>Janelle Cruz</b>, 18, in Irvine. After that, nothing.</p>`,
+      reveals:["G4"],events:[{s:1980,t:"1980",x:"Smiths killed in Ventura; Harringtons killed in Dana Point"},{s:1986,t:"1986",x:"Janelle Cruz, 18, killed in Irvine. Last known crime"}]},
+    G4:{no:"04",cat:"Forensic",title:"The 1999 DNA link",short:"DNA ties an Irvine murder to nine other killings.",meta:"Orange County Sheriff's homicide detectives",
+      body:`<p>In <b>1999</b>, Orange County detectives used DNA to link a murder in Irvine to <b>nine other killings</b> in Orange, Ventura and Santa Barbara counties. One offender was behind the Southern California murders.</p>`,
+      reveals:["G5"],events:[{s:1999,t:"1999",x:"DNA links ten Southern California killings"}]},
+    G5:{no:"05",cat:"Forensic",title:"The 2001 DNA link",short:"North and south: the same man.",meta:"DNA comparison",
+      body:`<p>In <b>2001</b>, advances in DNA testing proved that the <b>East Area Rapist</b> in the north and the <b>Original Night Stalker</b> in the south were the <b>same offender</b>. The press later called him the Golden State Killer.</p>`,
+      reveals:["G6"],events:[{s:2001,t:"2001",x:"DNA proves the East Area Rapist and the Night Stalker are one man"}]},
+    G6:{no:"06",cat:"Records",title:"Off the radar",short:"Decades of work, and still no name.",meta:"Task force review",
+      body:`<p>Despite decades of investigation, the offender had <b>never appeared on investigators' radar</b>. They had his DNA but no one to match it to.</p>`,
+      reveals:["G7"]},
+    G7:{no:"07",cat:"Forensic",title:"The genealogy search",short:"Crime-scene DNA is uploaded to a family-tree website.",meta:"Early 2018",
+      body:`<p>Investigators uploaded a DNA profile from a crime scene to a <b>free, open genealogy website</b>, where people share DNA to trace their family.</p>
+<p>It matched <b>distant relatives</b>. From them, investigators built family trees and narrowed the candidates by <b>age, location and other characteristics</b>, until one man fitted.</p>`,
+      reveals:["G8"],events:[{s:2018.1,t:"Early 2018",x:"Crime-scene DNA is run through a genealogy site"}]},
+    G8:{no:"08",cat:"Records",title:"The man in Citrus Heights",short:"A 72-year-old grandfather and former police officer.",meta:"Background check",
+      body:`<p><b>Joseph James DeAngelo</b>, 72, of Citrus Heights near Sacramento. A Vietnam veteran with a criminal justice degree from Sacramento State.</p>
+<p>In the 1970s he was a <b>police officer</b>, first in Exeter, about 10 miles from Visalia, where he was among officers hunting the Visalia burglar, then in Auburn from 1976 to 1979.</p>`,
+      reveals:["G9"]},
+    G9:{no:"09",cat:"Forensic",title:"Discarded DNA",short:"A car door handle, then a tissue from his trash.",meta:"Surveillance, April 2018",
+      body:`<p>Investigators put DeAngelo under surveillance. They swabbed the <b>door handle of his car</b> while he was in a store, which wasn't enough for an arrest.</p>
+<p>Days later they collected a <b>tissue from his trash</b>. Its DNA <b>matched</b> DNA from the crime scenes.</p>`,
+      reveals:["G10"],events:[{s:2018.3,t:"Apr 2018",x:"Discarded DNA matches crime scenes"},{s:2018.31,t:"24 Apr 2018",x:"DeAngelo arrested outside his home"}]},
+    G10:{no:"10",cat:"Witness",title:"Surveillance notes",short:"Sharp and active, until the arrest.",meta:"Prosecutors, 2020",
+      body:`<p>Prosecutors said that under surveillance DeAngelo appeared <b>sharp and vigorous</b>. After his arrest he appeared feeble and confused, and later used a wheelchair in court. Prosecutors argued this was <b>an act</b>.</p>
+<p>Left alone in an interview room after arrest, he was recorded saying he had done "all those things".</p>`},
+  },
+  bands:[],
+  groups:{
+    inv:{name:"Investigators, 1970s–90s",init:"INV",role:"Separate task forces",bio:"How the case looked before DNA tied it together.",
+      claims:[{id:"g1",q:"Is this one offender?",a:"The East Area Rapist up north and the Night Stalker down south are two different men.",lie:["G5"],reply:"DNA in 2001 proved they were the same person."}]},
+    assume:{name:"A common assumption",init:"?",role:"About genealogy searches",bio:"A misunderstanding many people had when the arrest was announced.",
+      claims:[{id:"g2",q:"What did the genealogy hit mean?",a:"The killer's own DNA must have been on the genealogy site.",lie:["G7"],reply:"Only distant relatives were on the site. Investigators had to build family trees to find him."}]},
+    defence:{name:"After the arrest",init:"JD",role:"DeAngelo in custody",bio:"How DeAngelo presented after he was arrested.",
+      claims:[{id:"g3",q:"Could he have done it?",a:"He's a frail, confused old man in a wheelchair.",lie:["G10"],reply:"Under surveillance he was sharp and active. Prosecutors said the frailty was an act."},
+        {id:"g4",q:"What did he say alone in the interview room?",a:"That he had done all those things."}]}
+  },
+  q1:{label:"Who was the Golden State Killer?",options:[{id:"many",label:"Two or more separate offenders"},{id:"codis",label:"One offender already in a criminal DNA database"},{id:"deangelo",label:"Joseph James DeAngelo, a former police officer"}],answer:"deangelo"},
+  q2:{label:"What finally identified him?",options:[{id:"prints",label:"A fingerprint at a scene"},{id:"codis",label:"A hit in the criminal DNA database"},{id:"genealogy",label:"Genetic genealogy, then discarded DNA"},{id:"tip",label:"A tip from the public"}],answer:"genealogy"},
+  strong:["G5","G7","G9","G4","G8"],
+  verdict:`<p>Joseph James DeAngelo was arrested on <b>24 April 2018</b>, more than 30 years after the last known killing.</p>
+<p>On <b>29 June 2020</b>, aged 74, he pleaded guilty to <b>13 murders</b> and 13 rape-related charges, and admitted dozens more attacks that were too old to prosecute. On <b>21 August 2020</b> he was sentenced to <b>life in prison without parole</b>. The plea deal avoided the death penalty.</p>
+<p>The case changed policing. Since his arrest, genetic genealogy has been used to identify more than 150 suspects in other cases (by 2020).</p>`,
+  memorial:"Among the 13 murdered: Brian & Katie Maggiore · Lyman & Charlene Smith · Keith & Patrice Harrington · Janelle Cruz · and every survivor.",
+  sources:[
+    {t:"Fox6: DNA from genealogy sites led to break in case",u:"https://fox6now.com/news/dna-from-genealogy-sites-led-to-break-in-golden-state-killer-case-da-says"},
+    {t:"Good Morning America: How DNA from family members helped",u:"https://goodmorningamerica.com/news/story/dna-family-members-helped-solved-golden-state-killer-54800093"},
+    {t:"CBS: DNA from tissue in trash led to arrest",u:"https://www.cbsnews.com/amp/news/dna-from-tissue-in-trash-led-to-arrest-in-golden-state-killer-case-records-show"},
+    {t:"ABC30: Genealogical websites used to find DNA match",u:"https://abc30.com/amp/post/genealogical-websites-used-to-find-dna-match-for-suspected-serial-killer/3390647/"},
+    {t:"ABC7: DeAngelo admits to dozens of rapes, murders",u:"https://abc7.com/golden-state-killer-plea-deal-trial-when-was-the-caught-who-is/6280795/"},
+    {t:"ABC7 News: Case timeline",u:"https://abc7news.com/7515045/"},
+    {t:"ABC7: Golden State Killer sentenced to life",u:"https://abc7.com/golden-state-killer-sentencing-sacramento-joseph-deangelo-hearing/6381911/"},
+    {t:"ABC11: Former cop pleads guilty",u:"https://abc11.com/post/golden-state-killer-former-cop-pleads-guilty-to-murders-rapes/6249433/"}]
+}
+];
+
+/* ================= ENGINE ================= */
+const KEY="case-files-v2";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const byId=id=>CASES.find(c=>c.id===id);
+
+function freshCase(c){return {found:Object.fromEntries(c.start.map(k=>[k,true])),seen:{},lies:{},misfires:0,opened:{},grp:Object.keys(c.groups)[0],
+  filter:"All",pins:{V:{x:640,y:380}},strings:[],notes:"",verdict:null,acc:{q1:"",q2:"",ev:[]}}}
+function fresh(){return {cur:null,tab:"brief",c:{}}}
+let S=fresh();
+let ui={modal:null,presenting:null,connect:false,sel:null,justLie:null,confirmReset:false,confirmAccuse:false};
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);if(d&&d.c)S=Object.assign(fresh(),d)}}catch(e){}}
+
+const C=()=>byId(S.cur);
+function CS(){const c=C();if(!S.c[c.id])S.c[c.id]=freshCase(c);return S.c[c.id]}
+const EV=k=>C().evidence[k];
+const foundIds=()=>Object.keys(C().evidence).filter(k=>CS().found[k]);
+const totalEv=()=>Object.keys(C().evidence).length;
+const allClaims=c=>Object.values(c.groups).flatMap(g=>g.claims);
+const totalLies=c=>allClaims(c).filter(x=>x.lie).length;
+const liesFound=()=>Object.keys(CS().lies).length;
+const grpLies=k=>C().groups[k].claims.filter(x=>CS().lies[x.id]).length;
+
+function toast(html){const t=document.createElement("div");t.className="toast";t.innerHTML=html;$("#toasts").appendChild(t);setTimeout(()=>t.remove(),3800)}
+function unlock(ids){(ids||[]).forEach(id=>{const cs=CS();if(!cs.found[id]){cs.found[id]=true;toast(`New evidence: <b>${EV(id).no} · ${esc(EV(id).title)}</b>`)}})}
+function hm(t){if(typeof t==="number")return t;const [h,m]=t.split(":").map(Number);return (h<12?h+24:h)*60+m}
+
+/* ---------- scoring ---------- */
+function score(c,cs,acc){
+  const rows=[];let pts=0;
+  const k=acc.q1===c.q1.answer;rows.push([c.real?"Right answer":"Correct killer",k?100:0]);pts+=k?100:0;
+  if(c.q2){const m=acc.q2===c.q2.answer;rows.push([c.real?"Second answer":"Correct motive",m?30:0]);pts+=m?30:0}
+  const sc=acc.ev.filter(x=>c.strong.includes(x)).length;rows.push([`Strong evidence (${sc}/3)`,sc*10]);pts+=sc*10;
+  const lf=Object.keys(cs.lies).length;rows.push([`Claims disproved (${lf}/${totalLies(c)})`,lf*5]);pts+=lf*5;
+  const f=-Math.min(cs.misfires*5,30);rows.push([`Wrong tests (${cs.misfires})`,f]);pts+=f;
+  pts=Math.max(0,pts);
+  const max=100+(c.q2?30:0)+30+5*totalLies(c);
+  const p=pts/max;
+  const rank=!k?"Case collapsed":p>=.9?"Chief Inspector":p>=.75?"Inspector":p>=.6?"Detective Sergeant":"Detective Constable";
+  return {pts,max,rows,rank,correct:k};
+}
+
+/* ---------- case select ---------- */
+function vSelect(){
+  const solved=CASES.filter(c=>S.c[c.id]?.verdict&&score(c,S.c[c.id],S.c[c.id].verdict).correct).length;
+  const closed=CASES.filter(c=>S.c[c.id]?.verdict).length;
+  $("#head").innerHTML=`<div class="docket-line"><span>EVIDENCE ROOM</span><span>CASES ON FILE: <b>${CASES.length}</b></span><span>CLOSED: <b>${closed}</b></span><span>SOLVED: <b>${solved}</b></span></div>
+  <h1 class="title flicker">The<br><span>Vault</span></h1>
+  <p class="sub">Pick a docket. Read the evidence, test every claim against it, and make your call. One fictional training case, then four real cases from South Africa and abroad, two single killers and two serial killers.</p>`;
+  $("#tabs").innerHTML="";$("#tabs").style.display="none";
+  $("#mainwrap").style.display="none";
+  $("#select").style.display="";
+  $("#select").innerHTML=`<div class="notice"><p>The real cases involve the murder of real people, including children. They're told without graphic detail, with every fact taken from court records and news reports, and sources are listed at the end of each case. In real cases, the wrong answers are theories that were considered at the time, never real innocent people.</p></div>
+  <div class="cases">${CASES.map(c=>{
+    const cs=S.c[c.id];let st="Not opened",cls="",stamp="";
+    if(cs){if(cs.verdict){const r=score(c,cs,cs.verdict);cls=r.correct?"win":"lose";st=r.correct?`Solved · ${r.pts}/${r.max} · ${r.rank}`:`Wrong verdict · ${r.pts}/${r.max}`;stamp=`<span class="solved-stamp ${cls}">${r.correct?"Solved":"Failed"}</span>`}
+      else st=`In progress · ${Object.keys(cs.found).length}/${Object.keys(c.evidence).length} evidence`}
+    return `<button type="button" class="folder" data-act="open-case" data-v="${c.id}">${stamp}<span class="fno">${c.no}</span>
+      <h2>${esc(c.title)}</h2><span class="where">${esc(c.place)} · ${esc(c.when)}</span>
+      <span class="tags"><span class="tg ${c.real?"real":"fic"}">${c.real?"Real case":"Fiction · training"}</span><span class="tg">${c.kind}</span></span>
+      <span class="bl">${esc(c.blurb)}</span><span class="status ${cls}">${st}</span></button>`}).join("")}</div>`;
+}
+
+/* ---------- case header ---------- */
+const TABS=[["brief","Briefing"],["evidence","Evidence"],["statements","Statements"],["board","Board"],["timeline","Timeline"],["accuse","Verdict"]];
+function renderHead(){
+  const c=C(),cs=CS();const unseen=foundIds().filter(k=>!cs.seen[k]).length;
+  $("#head").innerHTML=`<button type="button" class="back" data-act="home">← All cases</button>
+  <div class="docket-line"><span>CASE ${c.no}</span><span>${esc(c.docket)}</span><span>${esc(c.when)}</span></div>
+  <h1 class="title">${esc(c.title)}</h1>
+  <p class="sub">${esc(c.blurb)}</p>
+  <div class="stats"><span class="chip">${c.real?"Real case":"Fiction"}</span><span class="chip">Evidence <b>${foundIds().length}/${totalEv()}</b></span>
+  <span class="chip">Claims disproved <b>${liesFound()}/${totalLies(c)}</b></span><span class="chip">Wrong tests <b>${cs.misfires}</b></span>
+  ${cs.verdict?`<span class="chip hot">Case closed</span>`:unseen?`<span class="chip hot">${unseen} unread</span>`:""}</div>`;
+  $("#tabs").style.display="";
+  $("#tabs").innerHTML=TABS.map(([k,l])=>`<button class="tab" role="tab" data-act="tab" data-v="${k}" aria-selected="${S.tab===k}">${l}${k==="evidence"&&unseen?'<span class="dot"></span>':""}</button>`).join("");
+}
+
+/* ---------- views ---------- */
+function vBrief(){
+  const c=C(),cs=CS();
+  return `${c.real?`<div class="realbar"><b>Real case</b><span>${esc(c.note)} Wrong answers are theories, never real innocent people.</span></div>`:`<div class="realbar"><b>Training case</b><span>${esc(c.note)}</span></div>`}
+  <div class="cols"><div>
+  <span class="kicker">Case summary · ${esc(c.place)}</span><h2>${esc(c.title)}</h2>
+  <div class="typed" style="margin-top:12px">${c.brief}</div>
+  <hr class="rule"><span class="kicker">How to work the case</span>
+  <ol class="typed" style="padding-left:20px;margin:8px 0 0">
+    <li><b>Evidence</b>: open every item. Reading one often turns up the next.</li>
+    <li><b>Statements</b>: when evidence contradicts a claim, <b>test it</b> to disprove it. Some claims can't be disproved, and wrong tests cost points.</li>
+    <li><b>Board</b> and <b>Timeline</b>: pin, connect and order what you know.</li>
+    <li><b>Verdict</b>: one shot. Give your answer and your three strongest pieces of evidence.</li></ol>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px"><button class="btn red" data-act="tab" data-v="evidence">Open the evidence</button></div>
+  </div><div>
+  <span class="kicker">Detective's notebook</span><p class="hint" style="margin:4px 0 8px">Your own notes for this case. Kept in this browser.</p>
+  <textarea id="notes" aria-label="Notes" placeholder="What doesn't add up?">${esc(cs.notes)}</textarea>
+  <hr class="rule"><span class="kicker">The question</span><p class="typed" style="font-size:15px;margin:6px 0 0"><b>${esc(c.q1.label)}</b>${c.q2?`<br>${esc(c.q2.label)}`:""}</p>
+  </div></div>`;
+}
+
+function vEvidence(){
+  const c=C(),cs=CS();const cats=["All",...new Set(Object.values(c.evidence).map(e=>e.cat))];
+  const items=Object.entries(c.evidence).filter(([k,e])=>cs.filter==="All"||e.cat===cs.filter);
+  return `<span class="kicker">Evidence locker</span><h2>${foundIds().length} of ${totalEv()} items recovered</h2>
+  <div class="filter" role="group" aria-label="Filter evidence">${cats.map(x=>`<button type="button" data-act="filter" data-v="${x}" aria-pressed="${cs.filter===x}">${x}</button>`).join("")}</div>
+  <div class="ev-grid">${items.map(([k,e])=>cs.found[k]
+    ?`<button type="button" class="ev" data-act="open-ev" data-v="${k}">${!cs.seen[k]?'<span class="new">NEW</span>':""}<span class="no">${e.no}</span><span class="t">${esc(e.title)}</span><span class="s">${esc(e.short)}</span></button>`
+    :(cs.filter==="All"?`<div class="ev locked"><span class="no">${e.no}</span><span class="t">Not yet recovered</span><span class="s">Keep investigating.</span></div>`:"")).join("")}</div>`;
+}
+function evModal(k){
+  const e=EV(k),cs=CS();const pinned=!!cs.pins[k];
+  return `<div class="scrim" data-act="close-scrim"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt">
+  <button class="close" data-act="close" aria-label="Close">×</button>
+  <div class="tagline"><span class="no">${e.no}</span><h2 id="mt" style="font-family:var(--display);font-size:28px;text-transform:uppercase">${esc(e.title)}</h2></div>
+  <div class="meta">${esc(e.cat)} · ${esc(e.meta)}</div><div class="body">${e.body}</div>
+  <div class="actions"><button class="btn" data-act="pin" data-v="${k}" ${pinned?"disabled":""}>${pinned?"Pinned to board":"Pin to board"}</button><button class="btn" data-act="close">Close</button></div></div></div>`;
+}
+
+function vStatements(){
+  const c=C(),cs=CS();const g=c.groups[cs.grp];
+  const list=Object.entries(c.groups).map(([k,x])=>`<button type="button" class="sus" data-act="grp" data-v="${k}" aria-pressed="${cs.grp===k}">
+    <span class="mono-badge" style="font-size:${x.init.length>2?16:22}px">${esc(x.init)}</span><span><span class="n">${esc(x.name)}</span><br><span class="r">${esc(x.role)}</span>${grpLies(k)?`<br><span class="lies">${grpLies(k)} disproved</span>`:""}</span></button>`).join("");
+  const claims=g.claims.filter(st=>(!st.needs||cs.found[st.needs])&&(!st.needsClaim||cs.lies[st.needsClaim])).map(st=>{
+    const done=cs.lies[st.id];let inner=`<div class="q">Q: ${esc(st.q)}</div><div class="a">"${esc(st.a)}"</div>`;
+    if(done){inner+=`<div class="reply"><span class="stamp ${ui.justLie===st.id?"anim":""}">${c.real?"Disproved":"Lie exposed"}</span><div class="q">Tested against: ${EV(done).no} · ${esc(EV(done).title)}</div>${esc(st.reply)}</div>`}
+    else if(ui.presenting===st.id){inner+=`<div class="reply"><div class="q">Which evidence contradicts this?</div><div class="picker">${foundIds().map(k=>`<button type="button" data-act="present-ev" data-v="${k}"><span class="no">${EV(k).no}</span>${esc(EV(k).title)}</button>`).join("")}</div><div class="row"><button class="btn small" data-act="cancel-present">Cancel</button></div></div>`}
+    else inner+=`<div class="row"><button class="btn small" data-act="present" data-v="${st.id}">Test against evidence</button></div>`;
+    return `<div class="stmt ${done?"lie":""}">${inner}</div>`}).join("");
+  const pk="S:"+cs.grp;
+  return `<span class="kicker">${c.real?"Statements on record":"Interview room"}</span><h2>Test every claim</h2>
+  <div class="suspects">${list}</div>
+  <div class="profile"><span class="mono-badge" style="font-size:${g.init.length>2?24:38}px">${esc(g.init)}</span><div><h3 style="font-family:var(--display);font-size:26px;text-transform:uppercase">${esc(g.name)}</h3>
+  <div class="kicker">${esc(g.role)}</div><p style="margin:6px 0 8px">${esc(g.bio)}</p>
+  <button class="btn small" data-act="pin" data-v="${pk}" ${cs.pins[pk]?"disabled":""}>${cs.pins[pk]?"Pinned to board":"Pin to board"}</button></div></div>
+  <div class="typed">${claims}</div>`;
+}
+
+function cardInfo(id){
+  const c=C();
+  if(id==="V")return {cls:"victim",...c.victim};
+  if(id.startsWith("S:")){const g=c.groups[id.slice(2)];return {cls:"photo",no:g.init,t:g.name,s:g.role}}
+  const e=c.evidence[id];return {cls:"",no:e.no,t:e.title,s:e.short};
+}
+function vBoard(){
+  const c=C(),cs=CS();
+  const cards=Object.entries(cs.pins).map(([id,p])=>{const x=cardInfo(id);
+    return `<div class="pc ${x.cls} ${ui.sel===id?"sel":""}" data-pin="${esc(id)}" style="left:${p.x}px;top:${p.y}px"><span class="pin"></span>${id!=="V"?`<button class="x" data-act="unpin" data-v="${esc(id)}" aria-label="Remove from board">×</button>`:""}
+    <div class="no">${esc(x.no)}</div><div class="t">${esc(x.t)}</div><div>${esc(x.s)}</div></div>`}).join("");
+  const unpinned=[...foundIds(),...Object.keys(c.groups).map(k=>"S:"+k)].filter(id=>!cs.pins[id]);
+  return `<span class="kicker">Investigation board</span><h2>Pin it. Tie it. See it.</h2>
+  <div class="board-bar"><button class="btn ${ui.connect?"red":""}" data-act="connect">${ui.connect?"Tying string… click two cards":"Tie red string"}</button>
+  <select id="addpin" aria-label="Pin an item" style="font:inherit;padding:6px;border-radius:3px;border:1px solid #b29f78;background:#fbf5e6;color:var(--paper-ink);max-width:260px">
+  <option value="">Pin an item…</option>${unpinned.map(id=>`<option value="${esc(id)}">${esc(cardInfo(id).no+" · "+cardInfo(id).t)}</option>`).join("")}</select>
+  <span class="hint">Drag cards to arrange them. Click a string to cut it.</span></div>
+  <div class="board-wrap" id="bw"><div class="board" id="board"><svg id="strings"></svg>${cards}</div></div>`;
+}
+function drawStrings(){const svg=$("#strings");if(!svg)return;const cs=CS();
+  svg.innerHTML=cs.strings.map(([a,b],i)=>{const pa=cs.pins[a],pb=cs.pins[b];if(!pa||!pb)return"";return `<line data-i="${i}" x1="${pa.x+88}" y1="${pa.y+2}" x2="${pb.x+88}" y2="${pb.y+2}"/>`}).join("")}
+
+function vTimeline(){
+  const c=C(),cs=CS();const ev=[];
+  foundIds().forEach(k=>(c.evidence[k].events||[]).forEach(e=>ev.push({s:e.s!==undefined?e.s:hm(e.t),t:e.t,x:e.x,src:k})));
+  ev.sort((a,b)=>a.s-b.s);
+  const bands=(c.bands||[]).filter(b=>cs.found[b.needs]).map(b=>({...b,f:hm(b.from),to2:hm(b.to)}));
+  const rows=ev.map(e=>{const cl=bands.filter(b=>e.s>=b.f&&e.s<=b.to2).map(b=>b.cls).join(" ");
+    return `<div class="tl-row ${cl}"><div class="tm">${esc(e.t)}</div><div class="dot"></div><div>${esc(e.x)}<div class="src">Source: ${EV(e.src).no} · ${esc(EV(e.src).title)}</div></div></div>`}).join("");
+  const legend=bands.map(b=>b.cls==="tod"?`<span><i style="background:#e2552f33"></i>${esc(b.label)}</span>`:`<span><i style="background:repeating-linear-gradient(-45deg,#2b231833 0 4px,transparent 4px 8px)"></i>${esc(b.label)}</span>`).join("");
+  return `<span class="kicker">Reconstruction</span><h2>What happened, in order</h2>
+  ${legend?`<div class="legend">${legend}</div>`:""}
+  <p class="hint">${ev.length} dated events from ${foundIds().length} pieces of evidence. Uncover more to fill the gaps.</p>
+  <div class="tl">${rows||'<p class="typed">No dated events yet.</p>'}</div>`;
+}
+
+function vAccuse(){
+  const c=C(),cs=CS();
+  if(cs.verdict){const r=score(c,cs,cs.verdict);
+    return `<div class="verdict"><span class="kicker">${c.real?"Your call vs. the real outcome":"Verdict"}</span>
+    <div class="big" style="color:${r.correct?"var(--paper-ink)":"var(--tag)"}">${r.correct?(c.real?"You got it right":"Case closed"):(c.real?"You got it wrong":"Wrong person")}</div>
+    <div class="score">${r.pts} / ${r.max} · ${r.rank}</div></div>
+    <div class="breakdown">${r.rows.map(([a,b])=>`<div><span>${a}</span><span>${b>0?"+":""}${b}</span></div>`).join("")}</div>
+    <div class="breakdown"><div><span>Your answer</span><span>${esc(c.q1.options.find(o=>o.id===cs.verdict.q1).label)}</span></div>
+    <div><span>${c.real?"The real answer":"The answer"}</span><span>${esc(c.q1.options.find(o=>o.id===c.q1.answer).label)}</span></div></div>
+    <hr class="rule"><div class="story typed"><span class="kicker">${c.real?"What the court found":"What really happened"}</span>${c.verdict}</div>
+    ${c.memorial?`<div class="memorial">${esc(c.memorial)}</div>`:""}
+    ${c.sources.length?`<div class="sources"><span class="kicker">Sources</span><ol>${c.sources.map(s=>`<li><a href="${esc(s.u)}" target="_blank" rel="noopener">${esc(s.t)}</a></li>`).join("")}</ol></div>`:""}
+    <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:22px"><button class="btn" data-act="replay">Replay this case</button><button class="btn red" data-act="home">Next case</button></div>`;}
+  const a=cs.acc;const ready=a.q1&&(!c.q2||a.q2)&&a.ev.length===3;
+  const radios=(q,name)=>`<fieldset><legend>${esc(q.label)}</legend><div class="opts">${q.options.map(o=>`<label class="opt"><input type="radio" name="${name}" value="${o.id}" ${a[name]===o.id?"checked":""}><span><b>${esc(o.label)}</b>${o.sub?`<br><span class="hint">${esc(o.sub)}</span>`:""}</span></label>`).join("")}</div></fieldset>`;
+  return `<span class="kicker">${c.real?"Make your call":"Charge sheet"}</span><h2>${c.real?"What happened?":"Make your accusation"}</h2>
+  <p class="hint">One attempt. ${foundIds().length<totalEv()?`You've recovered ${foundIds().length} of ${totalEv()} items and disproved ${liesFound()} of ${totalLies(c)} claims. There may be more to find.`:"You've recovered every item."}</p>
+  <form id="accform">${radios(c.q1,"q1")}${c.q2?radios(c.q2,"q2"):""}
+  <fieldset><legend>Your three strongest pieces of evidence <span class="hint" style="font-family:var(--body);font-size:15px;text-transform:none">(${a.ev.length}/3 chosen)</span></legend><div class="opts">${foundIds().map(k=>`<label class="opt"><input type="checkbox" name="ev" value="${k}" ${a.ev.includes(k)?"checked":""} ${!a.ev.includes(k)&&a.ev.length>=3?"disabled":""}><span><b>${EV(k).no}</b> ${esc(EV(k).title)}</span></label>`).join("")}</div></fieldset>
+  ${ui.confirmAccuse?`<div class="stmt lie"><div class="a">This is final. Lock in "${esc(c.q1.options.find(o=>o.id===a.q1).label)}"?</div><div class="row" style="gap:8px"><button type="button" class="btn" data-act="cancel-accuse">Not yet</button><button type="button" class="btn red" data-act="do-accuse">Lock it in</button></div></div>`
+  :`<button type="button" class="btn red" data-act="accuse" ${ready?"":"disabled"}>${c.real?"Lock in my answer":"File charges"}</button>`}</form>`;
+}
+
+function resetModal(){return `<div class="scrim" data-act="close-scrim"><div class="modal" role="dialog" aria-modal="true"><h2 style="font-family:var(--display);text-transform:uppercase">Clear all progress?</h2>
+<p>Every case, note and board will be reset.</p><div class="actions"><button class="btn" data-act="close">Keep going</button><button class="btn red" data-act="reset-all">Clear everything</button></div></div></div>`}
+
+/* ---------- render ---------- */
+function render(){
+  if(!S.cur){vSelect();$("#modal-root").innerHTML=ui.confirmReset?resetModal():"";save();return}
+  $("#select").style.display="none";$("#mainwrap").style.display="";
+  renderHead();
+  $("#view").innerHTML={brief:vBrief,evidence:vEvidence,statements:vStatements,board:vBoard,timeline:vTimeline,accuse:vAccuse}[S.tab]();
+  $("#modal-root").innerHTML=ui.modal?evModal(ui.modal):(ui.confirmReset?resetModal():"");
+  if(S.tab==="board")drawStrings();
+  ui.justLie=null;save();
+}
+function openEvidence(k){ui.modal=k;const cs=CS();if(!cs.seen[k]){cs.seen[k]=true;unlock(EV(k).reveals)}render();setTimeout(()=>{const x=document.querySelector(".modal .close");x&&x.focus()},0)}
+function pin(id){const cs=CS();const n=Object.keys(cs.pins).length;
+  const spots=[[300,120],[980,120],[300,560],[980,560],[640,90],[640,680],[90,330],[1200,330],[120,90],[1240,90],[120,720],[1240,720],[470,320],[830,320],[470,700],[830,700],[90,520],[1240,520],[640,820],[300,820]];
+  const p=spots[(n-1)%spots.length];cs.pins[id]={x:p[0]+(n>20?(n-20)*12:0),y:p[1]+(n>20?(n-20)*12:0)};toast(`Pinned <b>${esc(cardInfo(id).t)}</b> to the board`)}
+function resetUi(){ui={modal:null,presenting:null,connect:false,sel:null,justLie:null,confirmReset:false,confirmAccuse:false}}
+function toTop(){window.scrollTo({top:0})}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-act]");if(!el)return;const a=el.dataset.act,v=el.dataset.v;
+  if(a==="close-scrim"&&e.target!==el)return;
+  switch(a){
+    case "open-case":S.cur=v;S.tab="brief";CS();resetUi();render();toTop();break;
+    case "home":S.cur=null;resetUi();render();toTop();break;
+    case "tab":S.tab=v;ui.presenting=null;ui.confirmAccuse=false;render();break;
+    case "filter":CS().filter=v;render();break;
+    case "open-ev":openEvidence(v);break;
+    case "close":case "close-scrim":ui.modal=null;ui.confirmReset=false;render();break;
+    case "pin":pin(v);render();break;
+    case "unpin":{const cs=CS();delete cs.pins[v];cs.strings=cs.strings.filter(([x,y])=>x!==v&&y!==v);render();break}
+    case "grp":{const cs=CS();cs.grp=v;ui.presenting=null;if(!cs.opened[v]){cs.opened[v]=true;unlock(C().groups[v].onOpen)}render();break}
+    case "present":ui.presenting=v;render();break;
+    case "cancel-present":ui.presenting=null;render();break;
+    case "present-ev":{const cs=CS();const st=C().groups[cs.grp].claims.find(x=>x.id===ui.presenting);
+      if(st&&st.lie&&st.lie.includes(v)){cs.lies[st.id]=v;ui.justLie=st.id;ui.presenting=null;unlock(st.unlocks);render()}
+      else{cs.misfires++;ui.presenting=null;toast(`<b>That doesn't contradict this claim.</b> ${st&&!st.lie?"Not every claim can be disproved.":"Look for something that directly conflicts with it."}`);render()}break}
+    case "connect":ui.connect=!ui.connect;ui.sel=null;render();break;
+    case "accuse":ui.confirmAccuse=true;render();break;
+    case "cancel-accuse":ui.confirmAccuse=false;render();break;
+    case "do-accuse":{const cs=CS();cs.verdict={...cs.acc,ev:[...cs.acc.ev]};ui.confirmAccuse=false;render();toTop();break}
+    case "replay":S.c[S.cur]=freshCase(C());S.tab="brief";resetUi();render();toTop();break;
+    case "ask-reset":ui.confirmReset=true;render();break;
+    case "reset-all":S=fresh();resetUi();render();toTop();break;
+  }
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(ui.modal||ui.confirmReset)){ui.modal=null;ui.confirmReset=false;render()}});
+document.addEventListener("input",e=>{if(e.target.id==="notes"){CS().notes=e.target.value;save()}});
+document.addEventListener("change",e=>{
+  if(e.target.id==="addpin"&&e.target.value){pin(e.target.value);render();return}
+  if(e.target.closest("#accform")){const fd=new FormData($("#accform"));CS().acc={q1:fd.get("q1")||"",q2:fd.get("q2")||"",ev:fd.getAll("ev").slice(0,3)};ui.confirmAccuse=false;render()}
+});
+let drag=null;
+document.addEventListener("pointerdown",e=>{
+  const line=e.target.closest("#strings line");if(line){CS().strings.splice(+line.dataset.i,1);drawStrings();save();return}
+  const card=e.target.closest(".pc");if(!card||e.target.closest("button"))return;const id=card.dataset.pin;
+  if(ui.connect){if(!ui.sel){ui.sel=id;card.classList.add("sel")}else if(ui.sel!==id){const cs=CS();
+    if(!cs.strings.some(([a,b])=>(a===ui.sel&&b===id)||(a===id&&b===ui.sel)))cs.strings.push([ui.sel,id]);ui.sel=null;render()}return}
+  e.preventDefault();const p=CS().pins[id];drag={id,card,sx:e.clientX,sy:e.clientY,ox:p.x,oy:p.y};card.setPointerCapture(e.pointerId);card.style.zIndex=10;
+});
+document.addEventListener("pointermove",e=>{if(!drag)return;const p=CS().pins[drag.id];
+  p.x=Math.max(0,Math.min(1500-180,drag.ox+e.clientX-drag.sx));p.y=Math.max(8,Math.min(950-120,drag.oy+e.clientY-drag.sy));
+  drag.card.style.left=p.x+"px";drag.card.style.top=p.y+"px";drawStrings()});
+document.addEventListener("pointerup",()=>{if(drag){drag.card.style.zIndex="";drag=null;save()}});
+
+function start(data){if(data&&data.c){S=Object.assign(fresh(),data)}else load();if(S.cur&&!byId(S.cur))S.cur=null;render()}
+try{window.claude?.hot?.snapshot(()=>S)}catch(e){}
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+
+</script>
+</body>
+</html>
