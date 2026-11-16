@@ -1,0 +1,17 @@
+{
+  "name": "The Vault · A Crime Vault game",
+  "short_name": "The Vault",
+  "description": "A detective game. Work real South African and international murder cases from the evidence, test every claim, and make your call.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0e151d",
+  "theme_color": "#0e151d",
+  "categories": ["games", "education", "entertainment"],
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

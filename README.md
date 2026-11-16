@@ -35,3 +35,13 @@ A single static `index.html` with vanilla HTML, CSS and JavaScript. It has no bu
 ---
 
 Built by **Kamohelo Mosiya** · SitesByKamo
+
+## Install it as an app
+
+The Vault is a progressive web app. Open the website and use **Install the app** in the footer (Chrome, Edge, Android), or on iPhone tap **Share → Add to Home Screen** in Safari. It gets its own icon and works offline after the first visit.
+
+## Launch kit
+
+The `launch/` folder has the itch.io listing text, cover image, screenshots and the upload zip.
+
+When you change `index.html`, bump `VERSION` in `sw.js` so installed copies pick up the update.
