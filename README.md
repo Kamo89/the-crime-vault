@@ -1,5 +1,7 @@
 # The Vault
 
+**▶ Play it:** [kamo823.itch.io/the-vault](https://kamo823.itch.io/the-vault) · [kamo89.github.io/the-crime-vault](https://kamo89.github.io/the-crime-vault/)
+
 A browser detective game from **The Crime Vault**. You open a case file, read the evidence, test every claim against it, pin clues to a corkboard, and make your call. Then you find out whether you got it right.
 
 ## Cases
@@ -30,7 +32,7 @@ A browser detective game from **The Crime Vault**. You open a case file, read th
 
 ## Tech
 
-A single static `index.html` with vanilla HTML, CSS and JavaScript. It has no build step and no dependencies. You can open it locally or serve it from any static host. It's hosted on GitHub Pages.
+A single static `index.html` with vanilla HTML, CSS and JavaScript. It has no build step and no dependencies. You can open it locally or serve it from any static host. It's hosted on GitHub Pages and published on [itch.io](https://kamo823.itch.io/the-vault).
 
 ---
 

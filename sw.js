@@ -1,5 +1,5 @@
 /* The Vault service worker: offline play after the first visit. Bump VERSION on every release. */
-const VERSION = "vault-v1";
+const VERSION = "vault-v2";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/icon-180.png", "./icons/icon-32.png"];
 
 self.addEventListener("install", e => {
